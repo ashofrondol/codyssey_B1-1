@@ -450,41 +450,49 @@ DISK Used  : 23%
 > 점검 방식: 저장소의 실제 소스를 명세의 요구사항 ID 와 1:1 대조. 판정 근거는 파일 경로로 명시.
 > README·수행내역서의 "했다"는 서술이 아니라 `src/*.sh`, `verify_orbstack.sh` 의 코드를 직접 열어 근거를 잡았고,
 > `monitor.sh` / `report.sh` / `archive_logs.sh` 는 저장소를 건드리지 않는 임시 디렉토리에서 **실제로 실행**해 확인했다(§ 실행 검증 기록).
+>
+> **근거 좌표 규칙** — `verify_orbstack.sh` 의 근거는 줄번호가 아니라 **함수 이름**(`v1_ssh()` 처럼)으로 적는다.
+> 줄번호는 리팩터링에 견디지 못하는 좌표라, 코드가 한 블록만 움직여도 문서의 근거가 조용히 거짓이 된다.
+> (실제로 2026-09-19 에 이 「0. 과제 명세」 절을 README 앞에 끼워 넣었을 때 같은 일이 났다.)
+> 줄번호를 유지한 `src/*.sh` 는 이번 수정에서 해당 참조 구간이 밀리지 않도록 변경을 그 뒤에 배치했다.
 
-**종합 판정: 대체로 충족** — 필수 30개 중 충족 25 / 부분 2 / 미충족 0 / 로컬검증불가 3
+**종합 판정: 충족** — 필수 30개 중 충족 27 / 부분 0 / 미충족 0 / 로컬검증불가 3
+
+> 2026-09-21 보완으로 기존 🟡 2건(R1-4 방화벽 배타성, 보너스 B2-2 아카이브 디렉토리)이 해소됐다.
+> 상세는 아래 「🔧 2026-09-21 보완 내역」 참조.
 
 | ID | 요구사항 (요약) | 판정 | 근거 / 비고 |
 | --- | --- | --- | --- |
-| R1 | 기본 보안 및 네트워크 설정 | 🟡 부분 충족 | 하위 R1-1~R1-3 충족, R1-4 "만 허용"의 배타성 보장 단계 없음 |
-| R1-1 | SSH 포트 20022 | ✅ 충족 | `src/01_ssh_hardening.sh:32-35` — `sed -i -E 's/^#?Port .*/Port 20022/'`, 재시작은 `:37-42`. 검증 `:47-48`, 자동 단언 `verify_orbstack.sh:187-192`. ⚠ Ubuntu 의 `/etc/ssh/sshd_config.d/*.conf` Include 드롭인은 치환 대상이 아님(드롭인에 Port 가 있으면 무력화) |
-| R1-2 | Root 원격 로그인 차단 | ✅ 충족 | `src/01_ssh_hardening.sh:34` — `s/^#?PermitRootLogin .*/PermitRootLogin no/`. 자동 단언 `verify_orbstack.sh:189-190` |
-| R1-3 | UFW/firewalld 중 택1 활성화 | ✅ 충족 | `src/02_firewall_allowlist.sh:36` (`ufw --force enable`), `:39` (`systemctl enable --now ufw`). 자동 단언 `verify_orbstack.sh:216-217` |
-| R1-4 | 인바운드 20022/tcp · 15034/tcp **만** 허용 | 🟡 부분 충족 | `src/02_firewall_allowlist.sh:27-33` — `default deny incoming` + 2개 allow 로 **신규 머신에서는** 요구를 만족. 그러나 ① 기존 `22/tcp`·`OpenSSH` 프로파일 등 **선행 규칙을 제거하는 단계가 없고**(저장소 전체에 `ufw delete` 없음), ② `verify_orbstack.sh:215-220` 의 검증도 두 규칙의 *존재*만 grep 할 뿐 **다른 규칙이 없음을 확인하지 않는다**(그런데도 `ok "UFW active + only 20022/15034 allowed"` 라고 단정). `verify_orbstack.sh:8` 기본 동작이 "머신 재사용"이라 기존 규칙이 남은 환경에서 위반 가능 |
+| R1 | 기본 보안 및 네트워크 설정 | ✅ 충족 | 하위 R1-1~R1-4 전부 충족. R1-4 의 배타성은 2026-09-21 에 보완 |
+| R1-1 | SSH 포트 20022 | ✅ 충족 | `src/01_ssh_hardening.sh:32-35` — `sed -i -E 's/^#?Port .*/Port 20022/'`, 재시작은 `:37-42`. 검증 `:47-48`, 자동 단언 `verify_orbstack.sh` `v1_ssh()`. ⚠ Ubuntu 의 `/etc/ssh/sshd_config.d/*.conf` Include 드롭인은 치환 대상이 아님(드롭인에 Port 가 있으면 무력화) |
+| R1-2 | Root 원격 로그인 차단 | ✅ 충족 | `src/01_ssh_hardening.sh:34` — `s/^#?PermitRootLogin .*/PermitRootLogin no/`. 자동 단언 `verify_orbstack.sh` `v1_ssh()` |
+| R1-3 | UFW/firewalld 중 택1 활성화 | ✅ 충족 | `src/02_firewall_allowlist.sh:36` (`ufw --force enable`), `:39` (`systemctl enable --now ufw`). 자동 단언 `verify_orbstack.sh` `v2_ufw()` |
+| R1-4 | 인바운드 20022/tcp · 15034/tcp **만** 허용 | ✅ 충족 | `src/02_firewall_allowlist.sh:27-33` — `default deny incoming` + 2개 allow. 여기에 2026-09-21 보완으로 ① 같은 파일의 "20022/15034 이외의 인바운드 허용 규칙 제거" 단계(`ufw status numbered` 를 **큰 번호부터** `ufw --force delete`)가 붙어 기존 `22/tcp`·`OpenSSH` 프로파일·`ufw limit` 잔재가 남아 있어도 실제로 제거되고, ② 같은 파일 끝의 배타성 검증 + `verify_orbstack.sh` `v2_ufw()` 가 **"20022/15034 가 아닌 `ALLOW IN`·`LIMIT IN` 라인이 0개"** 를 단언하며 `Default: deny (incoming)` 까지 확인한다. 머신 재사용이 기본 동작(`verify_orbstack.sh` 헤더 주석의 사용법)이라도 위반이 통과하지 않는다 |
 | R2 | 계정/그룹/권한 체계 | ✅ 충족 | 하위 R2-1~R2-5 전부 충족 |
 | R2-1 | 계정 3개 (admin/dev/test) | ✅ 충족 | `src/03_users_and_groups.sh:27-34` — `useradd -m -s /bin/bash` 루프, 존재 시 skip |
-| R2-2 | 그룹 2개 + 멤버 구성 | ✅ 충족 | `src/03_users_and_groups.sh:24-25`(groupadd), `:37-43` — common=admin/dev/test, core=admin/dev (test 제외). 자동 단언 `verify_orbstack.sh:246-259` 는 `agent-test` 가 core 에 **없음**까지 검사 |
+| R2-2 | 그룹 2개 + 멤버 구성 | ✅ 충족 | `src/03_users_and_groups.sh:24-25`(groupadd), `:37-43` — common=admin/dev/test, core=admin/dev (test 제외). 자동 단언 `verify_orbstack.sh` `v3_users()` 는 `agent-test` 가 core 에 **없음**까지 검사 |
 | R2-3 | 디렉토리 4종 생성 | ✅ 충족 | `src/04_directories_and_acl.sh:28-33` — `$AGENT_HOME`, `upload_files`, `api_keys`, `/var/log/agent-app` (+ `bin`) |
 | R2-4 | upload_files = agent-common R/W | ✅ 충족 | `src/04_directories_and_acl.sh:36`(chown `:agent-common`), `:42`(770), `:48-49`(`setfacl -m/-dm g:agent-common:rwx`) |
 | R2-5 | api_keys · /var/log/agent-app = agent-core ONLY | ✅ 충족 | `src/04_directories_and_acl.sh:37-38`(chgrp agent-core / chown root:agent-core), `:43-44`(770 → others `---` = agent-test 접근 불가), `:52-57`(ACL + default 상속). getfacl 캡처 `docs/md/요구사항_수행_내역서.md:648-676` 에 `other::---` 확인 |
 | R3 | 앱 실행 환경 구성 | ✅ 충족 | 하위 R3-1~R3-3 충족, R3-4·R3-5 는 런타임 관측(아래) |
 | R3-1 | 환경변수 5종 | ✅ 충족 | `src/05_env_and_keyfile.sh:25-33` — agent-admin `~/.bashrc` 에 AGENT_HOME/PORT/UPLOAD_DIR/KEY_PATH/LOG_DIR 5줄 영구 등록 |
 | R3-2 | `api_keys/t_secret.key` = `agent_api_key_test` 1줄 | ✅ 충족 | `src/05_env_and_keyfile.sh:39` — `echo "agent_api_key_test" \| tee`(정확히 1줄), `:42-43` 소유 agent-admin:agent-core / 640 |
-| R3-3 | 일반 계정 실행(root 금지) | ✅ 충족 | `verify_orbstack.sh:365-371` — `sudo -u agent-admin env ... ./agent-app`, `src/00_run_all.sh:49-50` 안내도 `sudo -iu agent-admin` |
-| R3-4 | Boot Sequence 5/5 `[OK]` + `Agent READY` | ⬜ 로컬 검증 불가 | 실행에 Ubuntu 24.04 + 제공 바이너리 필요(`bin/agent-app`, 7.9MB). **증거는 있음**: 자동 단언 `verify_orbstack.sh:391-396`(1~5 각 단계 `[OK]` + `Agent READY` grep), 콘솔 캡처 `docs/md/요구사항_수행_내역서.md:831-843`. 다만 캡처가 각 단계의 `... ` 상세줄과 `All Boot Checks Passed!` 줄을 생략한 축약본이고, `.verify-artifacts/agent.out` 은 저장소에 커밋돼 있지 않다 → **증거 충분성: 대체로 충분** |
-| R3-5 | `0.0.0.0:15034` LISTEN | ⬜ 로컬 검증 불가 | 증거: `verify_orbstack.sh:397-398`, 캡처 `docs/md/요구사항_수행_내역서.md:854-855`. 그러나 ① 자동 검증이 `$4 ~ /:15034$/` 만 보므로 **`127.0.0.1:15034` 여도 통과**한다(명세가 구분을 요구한 지점), ② 캡처의 PID 가 `pid=XXXX` 플레이스홀더, ③ `요구사항_수행_내역서.md:1082` 체크리스트는 `python3` 프로세스 표시라 적었으나 실제 프로세스명은 `agent-app` → **증거 충분성: 부분 미흡** |
+| R3-3 | 일반 계정 실행(root 금지) | ✅ 충족 | `verify_orbstack.sh` `s5_app_run()` — `sudo -u agent-admin env ... ./agent-app`, `src/00_run_all.sh:49-50` 안내도 `sudo -iu agent-admin` |
+| R3-4 | Boot Sequence 5/5 `[OK]` + `Agent READY` | ⬜ 로컬 검증 불가 | 실행에 Ubuntu 24.04 + 제공 바이너리 필요(`bin/agent-app`, 7.9MB). **증거는 있음**: 자동 단언 `verify_orbstack.sh` `v5_app()`(1~5 각 단계 `[OK]` + `Agent READY` grep), 콘솔 캡처 `docs/md/요구사항_수행_내역서.md:831-843`. 다만 캡처가 각 단계의 `... ` 상세줄과 `All Boot Checks Passed!` 줄을 생략한 축약본이고, `.verify-artifacts/agent.out` 은 저장소에 커밋돼 있지 않다 → **증거 충분성: 대체로 충분** |
+| R3-5 | `0.0.0.0:15034` LISTEN | ⬜ 로컬 검증 불가 | 증거: `verify_orbstack.sh` `v5_app()`, 캡처 `docs/md/요구사항_수행_내역서.md:854-855`. 그러나 ① 자동 검증이 `$4 ~ /:15034$/` 만 보므로 **`127.0.0.1:15034` 여도 통과**한다(명세가 구분을 요구한 지점), ② 캡처의 PID 가 `pid=XXXX` 플레이스홀더, ③ `요구사항_수행_내역서.md:1082` 체크리스트는 `python3` 프로세스 표시라 적었으나 실제 프로세스명은 `agent-app` → **증거 충분성: 부분 미흡** |
 | R4 | monitor.sh 구현 | ✅ 충족 | 9개 하위 요구 전부 충족, 7개는 실제 실행으로 확인 |
-| R4-1 | `$AGENT_HOME/bin/monitor.sh` / agent-dev:agent-core / 750 | ✅ 충족 | `src/06_deploy_app_and_scripts.sh:49-50` — `install -m 0750 -o agent-dev -g agent-core`. 동일 배포 `verify_orbstack.sh:342` |
+| R4-1 | `$AGENT_HOME/bin/monitor.sh` / agent-dev:agent-core / 750 | ✅ 충족 | `src/06_deploy_app_and_scripts.sh:49-50` — `install -m 0750 -o agent-dev -g agent-core`. `verify_orbstack.sh` `s5_app_setup()` 은 이 배포 명령을 베껴 쓰지 않고 **`src/06` 을 그대로 실행**한다(2026-09-21 보완) |
 | R4-2 | cron 실행자 agent-admin (agent-core 포함) | ✅ 충족 | `src/07_cron_schedule.sh:23-28`(`sudo -u agent-admin ... crontab -`) + `src/03_users_and_groups.sh:42`(admin 을 agent-core 에 추가) → 750 의 group `r-x` 로 실행 가능 |
 | R4-3 | 프로세스 확인, 비정상 시 `exit 1` | ✅ 충족 | `src/monitor.sh:39-45` — `pgrep -x agent-app`, 실패 시 `[ERROR]` 후 `exit 1`. **실행 확인**: 앱 미기동 상태에서 `[FAIL]` + exit=1 재현. `-x`(comm 완전일치)를 써서 `-f` 의 자기참조 오탐을 회피한 점은 명세 해설이 지적한 함정을 제대로 피한 것 |
 | R4-4 | TCP 15034 LISTEN 확인, 비정상 시 `exit 1` | ✅ 충족 | `src/monitor.sh:47-57` — `ss -tlnH` (없으면 netstat 폴백) + `exit 1`. **실행 확인**: 15034 리스너를 띄운 상태에서 `Checking port 15034... [OK]` |
 | R4-5 | 방화벽 비활성 시 `[WARNING]` 만, 종료 금지 | ✅ 충족 | `src/monitor.sh:64-80` — WARNING 출력 후 계속 진행. **실행 확인**: 방화벽 없는 환경에서 `[WARNING] Firewall is not active.` 출력 후 끝까지 진행하고 `exit=0`. sudo 없이 판별되도록 systemd/`/etc/ufw/ufw.conf`/firewalld 3중 폴백(`:71-77`) |
-| R4-6 | CPU/MEM/DISK(root, Used%) 수집 | ✅ 충족 | `src/monitor.sh:86`(top idle 기반), `:91`(`free` used/total), `:95`(`df -P /` 5열). **실행 확인**: `free`/`df` 원값과 스크립트 출력이 일치(MEM 31.6%, DISK 35%). ⚠ `top -bn1` 1회 샘플 CPU 는 순간값 정확도가 낮다는 명세 해설의 지적은 그대로 남음 |
+| R4-6 | CPU/MEM/DISK(root, Used%) 수집 | ✅ 충족 | `src/monitor.sh:86`(top idle 기반), `:91`(`free` used/total), `:95`(`df -P /` 5열). **실행 확인**: `free`/`df` 원값과 스크립트 출력이 일치(MEM 31.6%, DISK 35%). 2026-09-21 보완으로 CPU 는 `top -bn2 -d 1` 의 **두 번째 샘플**을 쓴다 — 1회 샘플(`-bn1`)이 부팅 이후 누적 평균에 가깝다는 명세 해설의 지적을 해소. 비용은 실행당 약 1초 |
 | R4-7 | CPU>20 / MEM>10 / DISK>80 초과 시 `[WARNING]`, 종료 금지 | ✅ 충족 | `src/monitor.sh:18-20`(임계값 20/10/80), `:107-112`(awk 부동소수 비교 → echo). **실행 확인**: MEM 31.6% 에서 `[WARNING] MEM threshold exceeded (31.6% > 10%)` 출력 후 정상 종료(exit=0) |
 | R4-8 | `/var/log/agent-app/monitor.log` 지정 포맷 누적 | ✅ 충족 | `src/monitor.sh:126-127` — `[${TS}] PID:.. CPU:..% MEM:..% DISK_USED:..%` 를 `>>` 로 append. **실행 확인**: `[2026-09-19 13:24:57] PID:4066568 CPU:3.0% MEM:31.6% DISK_USED:35%` — 명세 포맷과 문자 단위로 일치 |
 | R4-9 | 최대 10MB / 10개 파일 유지 | ✅ 충족 | `src/monitor.sh:23-24, 135-146` — 10MB 초과 시 `.10` 삭제 → `.N→.N+1` 시프트 → `.1` 로 회전. **실행 확인**: 11MB 로그로 실행 시 `monitor.log.1` 생성 + 현재 로그 0바이트 재시작. (보관 파일은 현재 로그 + 회전본 10개 = 11개 ≈ 최대 110MB 로 읽히나, 원문 "10개 파일 유지" 해석 범위 내) |
 | R5 | 자동 실행(cron) | ✅ 충족 | 하위 R5-1 충족, R5-2 는 런타임 관측 |
 | R5-1 | agent-admin crontab, 매분 실행 | ✅ 충족 | `src/07_cron_schedule.sh:25` — `* * * * * AGENT_HOME=... AGENT_PORT=... AGENT_LOG_DIR=... /home/agent-admin/agent-app/bin/monitor.sh >> ... 2>&1`. cron 이 `.bashrc` 를 상속하지 않는 함정을 **명령줄 인라인 변수**로 정면 해결. 중복 등록 방지 `:24` |
-| R5-2 | 등록 후 1~2분 내 로그 자동 누적 확인 | ⬜ 로컬 검증 불가 | cron 데몬 + 실제 머신 필요. **증거는 있음**: `verify_orbstack.sh:452-481` 이 before 라인수 → 70초 대기 → after 비교로 자동 단언(`die "log lines did not grow"`), 문서 캡처 `docs/md/요구사항_수행_내역서.md:1006-1015` 에 `wc -l` 2→4 및 1분 간격 3라인 → **증거 충분성: 충분** |
+| R5-2 | 등록 후 1~2분 내 로그 자동 누적 확인 | ⬜ 로컬 검증 불가 | cron 데몬 + 실제 머신 필요. **증거는 있음**: `verify_orbstack.sh` `v7_cron_wait()` 가 before 라인수 → 70초 대기 → after 비교로 자동 단언(`die "log lines did not grow"`), 문서 캡처 `docs/md/요구사항_수행_내역서.md:1006-1015` 에 `wc -l` 2→4 및 1분 간격 3라인 → **증거 충분성: 충분** |
 
 #### 보너스 과제
 
@@ -493,41 +501,65 @@ DISK Used  : 23%
 | B1 | report.sh 요약 리포트 | ✅ 충족 | `src/report.sh` 전체(74줄), 순수 awk 구현 — 외부 언어 미사용 |
 | B1-1 | CPU/MEM/DISK 평균·최대·최소 + 샘플 수 콘솔 출력 | ✅ 충족 | `src/report.sh:44-51`(집계), `:59-72`(출력). **실행 확인**: 명세 예시 로그 3줄 투입 → CPU avg 18.1 / max 25.3 at 14:00:01 / min 10.2, Data Points: 3. 명세 예시엔 없는 `[Disk]` 블록까지 출력(요구는 DISK 포함이므로 오히려 정확) |
 | B1-2 | 시작/종료 시간 인자로 구간 분석 | ✅ 충족 | `src/report.sh:11-12, 34-35` — 문자열 비교 기반 구간 필터(고정폭 타임스탬프라 사전식=시간순). **실행 확인**: `"2026-02-25 13:58:30" "2026-02-25 14:00:00"` → 1 sample 만 집계. 샘플 0개 시 `[INFO] No samples in the given range.` + exit 0 (`:55-58`) |
-| B2 | 시간 기반 로그 보존 정책 | 🟡 부분 충족 | 로직은 전부 맞으나 아카이브 디렉토리 준비 단계 누락(B2-2 참조) |
+| B2 | 시간 기반 로그 보존 정책 | ✅ 충족 | 로직 + 아카이브 디렉토리 준비 단계 모두 존재 (2026-09-21 보완) |
 | B2-1 | 7일 경과 `*.log` 압축 | ✅ 충족 | `src/archive_logs.sh:29-39` — `find -maxdepth 1 -type f -name '*.log' -mtime +7 -print0` + `while read -d ''`(공백/특수문자 안전). **실행 확인**: mtime 10일 파일만 압축, 1일 파일은 보존 |
-| B2-2 | 아카이브 이동 → `/var/log/monitor/agent-app/archive/` | 🟡 부분 충족 | 경로 자체는 원문과 정확히 일치(`src/archive_logs.sh:11`)하고 gzip 후 원본 삭제로 "이동"을 구현(`:32-35`). **그러나 이 디렉토리를 만들고 agent-core 에 권한을 주는 setup 단계가 저장소 어디에도 없다**(`src/04_directories_and_acl.sh` 는 `/var/log/agent-app` 만 생성, 저장소 전체 grep 결과 `/var/log/monitor` 는 `archive_logs.sh:11` 과 문서 서술뿐). 스크립트가 자체 `mkdir -p`(`:18`) 를 시도하지만 `/var/log` 쓰기 권한이 없는 **cron 실행자 agent-admin 으로는 실패**한다 → `src/07_cron_schedule.sh:26` 에 등록한 매일 03:10 작업이 매번 `[ERROR] Cannot create archive directory` + exit 1. **실행 확인**: 원본 그대로 실행 시 정확히 이 에러 재현 |
+| B2-2 | 아카이브 이동 → `/var/log/monitor/agent-app/archive/` | ✅ 충족 | 경로 자체는 원문과 정확히 일치(`src/archive_logs.sh:11`)하고 gzip 후 원본 삭제로 "이동"을 구현(`:32-35`). 2026-09-21 보완으로 `src/04_directories_and_acl.sh` 끝의 「보너스 2: 로그 아카이브 디렉토리」 블록이 `mkdir -p` + `chown root:agent-core` + `chmod 770` + `setfacl -m/-dm g:agent-core:rwx` 로 디렉토리를 **setup 단계에서 미리** 만든다. 같은 블록의 검증이 `sudo -u agent-admin test -w` 로 **cron 실행자가 실제로 쓸 수 있는지**까지 확인하고, `verify_orbstack.sh` `v4_acl()` 도 같은 단언을 반복한다. → `src/07_cron_schedule.sh:26` 의 매일 03:10 작업이 더 이상 `[ERROR] Cannot create archive directory` 로 죽지 않는다 |
 | B2-3 | 30일 경과 `*.gz` 삭제 | ✅ 충족 | `src/archive_logs.sh:43-45` — `find ... -name '*.gz' -mtime +30 -print0`. **실행 확인**: mtime 40일 .gz 1개 삭제(`deleted=1`) |
 | B2-4 | 예외 처리(디렉토리 미존재/권한 부족/대상 0개) | ✅ 충족 | `src/archive_logs.sh:14-25`(소스 미존재 → WARNING + exit 0, 아카이브 생성 실패/쓰기 불가 → ERROR + exit 1), `:33-38`(압축 실패 개별 WARNING). **실행 확인**: 3개 경로 모두 재현, 대상 0개일 때 `compressed=0, deleted=0` 으로 안전 종료 |
 
 #### 🔍 발견된 격차와 보완 제안
 
-1. **[중요] B2-2 — 아카이브 디렉토리가 cron 실행 계정으로는 만들어지지 않는다.**
-   `archive_logs.sh` 는 `/var/log/monitor/agent-app/archive` 를 스스로 `mkdir -p` 하려 하지만, 등록된 실행자는 agent-admin 이고 `/var/log` 는 root 소유라 매번 exit 1 로 죽는다(실행으로 재현함). 보너스 2가 사실상 동작하지 않는 상태.
-   → 보완: `src/04_directories_and_acl.sh` 에 `sudo mkdir -p /var/log/monitor/agent-app/archive` + `sudo chown root:agent-core` + `sudo chmod 770` + `setfacl -m/-dm g:agent-core:rwx` 3~4줄을 추가하고, `verify_orbstack.sh` 의 §4 검증에도 이 경로를 포함시킬 것. (또는 `ARCHIVE_DIR="${AGENT_ARCHIVE_DIR:-/var/log/monitor/agent-app/archive}"` 로 외부 주입 가능하게 하면 테스트도 쉬워진다.)
+1. ~~**[중요] B2-2 — 아카이브 디렉토리가 cron 실행 계정으로는 만들어지지 않는다.**~~ → **2026-09-21 해결.**
+   `archive_logs.sh` 는 `/var/log/monitor/agent-app/archive` 를 스스로 `mkdir -p` 하려 하지만, 등록된 실행자는 agent-admin 이고 `/var/log` 는 root 소유라 매번 exit 1 로 죽었다(실행으로 재현했었다).
+   → 조치: `src/04_directories_and_acl.sh` 끝에 「보너스 2: 로그 아카이브 디렉토리」 블록(`mkdir -p` + `chown root:agent-core` + `chmod 770` + `setfacl -m/-dm`)을 추가하고, 같은 파일의 검증과 `verify_orbstack.sh` `v4_acl()` 양쪽에서 `sudo -u agent-admin test -w` 로 **cron 실행자의 쓰기 가능 여부**를 단언하게 했다. 디렉토리를 *만드는* 일은 sudo 가 있는 setup 의 몫, cron 은 *쓰기만* 하면 된다는 경계를 코드로 고정한 것.
+   (남은 선택지: `ARCHIVE_DIR="${AGENT_ARCHIVE_DIR:-/var/log/monitor/agent-app/archive}"` 로 외부 주입 가능하게 하면 테스트가 더 쉬워진다 — 미적용.)
 
-2. **[중요] R1-4 — "만 허용"의 배타성이 보장·검증되지 않는다.**
-   `02_firewall_allowlist.sh` 는 규칙을 추가만 하고 기존 규칙(예: 이전 실습의 `22/tcp`, `OpenSSH` 앱 프로파일)을 제거하지 않는다. `verify_orbstack.sh:215-220` 도 두 규칙의 존재만 확인하면서 `only ... allowed` 라고 단언한다. 머신 재사용이 기본 동작이므로 실제로 22 가 열린 채 "통과" 할 수 있다.
-   → 보완: ① 활성화 후 `ufw status numbered` 를 파싱해 20022/15034(v4/v6) 이외의 ALLOW 규칙이 있으면 삭제하거나 최소한 경고, ② 검증을 "ALLOW IN 라인 수 == 4(v4 2 + v6 2)" 형태의 **배타 검사**로 바꾸기, ③ 안전 순서(20022 허용 → sshd 변경/재시작 → 새 세션 확인 → 22 제거)를 스크립트 주석이 아니라 실제 단계로 반영.
+2. ~~**[중요] R1-4 — "만 허용"의 배타성이 보장·검증되지 않는다.**~~ → **2026-09-21 해결.**
+   `02_firewall_allowlist.sh` 는 규칙을 추가만 하고 기존 규칙(예: 이전 실습의 `22/tcp`, `OpenSSH` 앱 프로파일)을 제거하지 않았고, `verify_orbstack.sh` 의 `v2_ufw()` 도 두 규칙의 존재만 확인하면서 `only ... allowed` 라고 단언했다. 머신 재사용이 기본 동작이므로 22 가 열린 채 "통과" 할 수 있었다.
+   → 조치: ① `ufw --force enable` 이후 `ufw status numbered` 를 파싱해 20022/15034 가 아닌 인바운드 허용 규칙(`ALLOW IN` **및** `LIMIT IN`)을 **큰 번호부터** `ufw --force delete` (ufw 가 삭제할 때마다 뒤 번호를 당겨오기 때문), ② 같은 파일의 검증 블록과 `v2_ufw()` 를 **"20022/15034 가 아닌 `ALLOW IN`·`LIMIT IN` 라인이 0개"** 라는 배타 검사로 교체하고 `Default: deny (incoming)` 확인을 추가, ③ 안전 순서는 실행 순서로 보장된다 — `00_run_all.sh` 가 01(sshd → 20022) → 02(방화벽) 순서로 돌고 20022 허용이 삭제보다 먼저이므로 자기 자신을 잠그지 않는다. 이 전제를 스크립트 주석에 명시했다.
+   > 고정 개수(`== 4`)가 아니라 "예외가 0건"으로 쓴 이유: IPv6 비활성 머신에서는 인바운드 허용이 2줄이라 개수 비교는 환경에 따라 거짓 실패를 낸다. 검사해야 할 사실은 개수가 아니라 **예외의 부재**다.
+   > `LIMIT IN` 까지 보는 이유: `ufw limit 22/tcp` 는 SSH brute-force 방어로 흔히 쓰이는 레시피인데, 그 규칙도 22 번 인바운드를 **허용**한다. `ALLOW` 만 검사하면 22 가 열린 채 R1-4 가 ✅ 로 찍힌다(2026-09-21 검수에서 모의 출력으로 재현해 보강).
 
 3. **[경미] R3-5 — `0.0.0.0` 바인딩을 실제로 구분하지 않는다.**
-   `verify_orbstack.sh:397` 의 `$4 ~ /:15034$/` 는 `127.0.0.1:15034` 도 통과시킨다. 명세가 루프백과 구분하라고 못박은 항목이라 검증이 요구를 못 따라간다. 문서 캡처(`요구사항_수행_내역서.md:855`)의 PID 는 `pid=XXXX` 플레이스홀더라 증거로서도 반쪽이다.
+   `verify_orbstack.sh` `v5_app()` 의 `$4 ~ /:15034$/` 는 `127.0.0.1:15034` 도 통과시킨다. 명세가 루프백과 구분하라고 못박은 항목이라 검증이 요구를 못 따라간다. 문서 캡처(`요구사항_수행_내역서.md:855`)의 PID 는 `pid=XXXX` 플레이스홀더라 증거로서도 반쪽이다.
    → 보완: `awk '$4 ~ /^(0\.0\.0\.0|\*):15034$/'` 로 바꾸고, `ss -tlnp` 실제 출력(PID 포함)을 그대로 붙여넣기. 같은 문서 `:1082` 의 "`python3` 프로세스 표시" 문구도 실제 프로세스명 `agent-app` 로 정정 필요.
 
 4. **[경미] 필수 증거 자료 체크리스트가 "체크되지 않은 채" 제출 상태다.**
-   `docs/md/요구사항_수행_내역서.md:1075-1087` 의 11개 항목이 전부 `- [ ]` 이고, §1.3 제목은 "(스크린샷/출력 첨부 **위치**)", §2 는 "검증 출력 **예**"(`:294`)라 어디까지가 실제 캡처인지 독자가 구분할 수 없다. `verify_orbstack.sh:495-519` 가 `evidence.txt` 를 만들지만 `.verify-artifacts/` 는 저장소에 없다.
+   `docs/md/요구사항_수행_내역서.md:1075-1087` 의 11개 항목이 전부 `- [ ]` 이고, §1.3 제목은 "(스크린샷/출력 첨부 **위치**)", §2 는 "검증 출력 **예**"(`:294`)라 어디까지가 실제 캡처인지 독자가 구분할 수 없다. `verify_orbstack.sh` `collect_evidence()` 가 `evidence.txt` 를 만들지만 `.verify-artifacts/` 는 저장소에 없다.
    → 보완: 한 번 실행해 나온 `.verify-artifacts/evidence.txt` + `agent.out` 을 저장소에 커밋(또는 문서에 통째로 인라인)하고, 캡처 블록마다 "예시"인지 "실제 출력"인지 라벨을 달고 체크박스를 채울 것. 특히 8번 항목은 1분 간격 before/after 2회 캡처가 요구되므로 `wc -l` 2회 출력을 시각과 함께 남겨야 한다.
 
 5. **[경미] README 가 실제 저장소 상태와 어긋난다.**
-   `README.md:607` 가 `.github/workflows/verify.yml` 을 구조도에 명시하지만 해당 파일은 없다(커밋 `20c859d chore: verify.yml 삭제.` 로 제거됨). 또 `## 3. 최종 산출물`(`:67`)과 `## 3. 기능 요구 사항`(`:81`) 이 같은 번호를 쓴다. 그리고 README 최상단에 **과제 원문 명세 절이 없어** 무엇을 요구받았는지가 저장소만 보고는 확정되지 않는다.
+   `## 2. 디렉토리 구조` 의 마지막 줄이 `.github/workflows/verify.yml` 을 명시하지만 해당 파일은 없다(커밋 `20c859d chore: verify.yml 삭제.` 로 제거됨). 또 `## 3. 최종 산출물` 과 `## 3. 기능 요구 사항` 이 같은 절 번호 "3" 을 쓴다. 그리고 README 최상단에 **과제 원문 명세 절이 없어** 무엇을 요구받았는지가 저장소만 보고는 확정되지 않는다.
    → 보완: 삭제된 워크플로 줄 제거, 절 번호 재정렬, 그리고 `0. 과제 명세` 절(원문 요구사항 + 학습 포인트)을 README 최상단에 추가.
 
-6. **[경미] R4-6 CPU 측정 정확도.**
-   `src/monitor.sh:86` 의 `top -bn1` 1회 샘플은 부팅 이후 누적 평균에 가까워 순간 사용률로는 부정확하다(명세 해설이 명시적으로 지적한 지점). 기능 요구는 충족이지만 개념 질문에 답하려면 근거가 필요하다.
-   → 보완: `top -bn2 | tail` 의 두 번째 샘플을 쓰거나 `/proc/stat` 을 1초 간격 2회 읽어 델타로 계산. 최소한 스크립트 주석에 "1회 샘플의 한계를 알고 선택했다"는 근거를 남길 것.
+6. ~~**[경미] R4-6 CPU 측정 정확도.**~~ → **2026-09-21 해결.**
+   `src/monitor.sh:86` 의 `top -bn1` 1회 샘플은 부팅 이후 누적 평균에 가까워 순간 사용률로는 부정확했다(명세 해설이 명시적으로 지적한 지점).
+   → 조치: `top -bn2 -d 1` 로 1초 간격 2샘플을 뜨고 awk 가 **두 번째 `Cpu(s)` 라인만** 채택한다(`END {print v}`). 줄 수는 그대로라 이 표의 `:86` 좌표도 유효하다. 대가는 실행당 약 1초이며 매분 1회 cron 에서는 허용 범위 — 그 판단 근거를 코드 주석에 남겼다.
+
+7. ~~**[치명] 검증 하네스가 산출물이 아니라 손으로 베낀 사본을 실행했다.**~~ → **2026-09-21 해결.**
+   `verify_orbstack.sh` 의 `s1_ssh()`~`s7_cron_setup()` 이 `src/01`~`src/07` 과 **같은 뜻의 명령을 다시 적어** 실행하고 있었다. 결과적으로 이 하네스는 `src/` 를 검증하지 않았다 — `src/01~07` 을 통째로 지워도 `ALL CHECKS PASSED` 가 찍혔다. 그리고 두 사본이 갈라지면(예: `src/07` 은 cron 항목을 2개 등록하는데 하네스 사본은 1개만 등록했다) 어느 쪽이 진실인지 알 수 없다.
+   → 조치: 각 setup 함수의 본문을 `run_src NN_*.sh` 한 줄로 바꿔 **`src/` 의 산출물을 그대로 실행**하게 했다. 실행 대상은 `REQUIRED_SOURCES` 배열 한 곳에 모았고, `preflight()` 가 그 목록을 그대로 존재 검사에 쓴다(같은 사실을 두 곳에 두지 않기 위해). 검사 순서도 뒤집어 산출물 확인이 `orb` CLI 확인보다 **먼저** 오게 했다 — 그래야 파일 누락이 "orb 없음" 뒤에 숨지 않는다.
+   → **깨뜨려 확인함**: `src/01_ssh_hardening.sh` 를 지우고 실행하면 `✗ missing artifact: .../src/01_ssh_hardening.sh` 로 즉시 빨간 불(exit 1). 되돌리면 `✓ 11 source artifacts exist`. (§ 실행 검증 기록 #13)
+
+#### 🔧 2026-09-21 보완 내역
+
+| # | 무엇을 | 어디를 | 왜 |
+| --- | --- | --- | --- |
+| 1 | 하네스가 산출물을 **실제로 실행** | `verify_orbstack.sh` `REQUIRED_SOURCES` / `run_src()` / `preflight()` / `s1_ssh()`~`s7_cron_setup()` | 규칙은 문서가 아니라 검사에 살아야 한다. 사본을 채점하는 검사는 검사가 아니다 |
+| 2 | 아카이브 디렉토리 **setup 단계에서 생성** | `src/04_directories_and_acl.sh` 「보너스 2」 블록, `verify_orbstack.sh` `v4_acl()` | 보너스 2 가 매일 03:10 에 조용히 죽고 있었다(실제 버그) |
+| 3 | 방화벽 "만 허용"의 **배타성 확보 + 배타 검사** | `src/02_firewall_allowlist.sh` 삭제 단계·검증 블록, `verify_orbstack.sh` `v2_ufw()` | 규칙을 더하는 것으로는 배타성이 생기지 않는다. 남은 것을 지워야 생긴다 |
+| 3-b | 배타 검사 범위를 `ALLOW IN` → **`ALLOW IN`·`LIMIT IN`** 으로 | 같은 두 곳 | 검수(#22)에서 구멍이 나왔다. `ufw limit 22/tcp` 도 22 번 인바운드를 허용하는데 `ALLOW` 만 보면 통과했다 — 검사가 요구보다 좁으면 그 검사는 없는 것과 같다 |
+| 4 | CPU 측정을 **2회 샘플의 두 번째**로 | `src/monitor.sh:85-86` | 1회 샘플은 '지금'이 아니라 부팅 이후 평균이다 |
+| 5 | 근거 좌표를 **줄번호 → 함수 이름**으로 | 이 절(0.10)의 `verify_orbstack.sh` 참조 전부 | 줄번호는 리팩터링에 견디지 못한다. 1번 작업으로 이 파일이 크게 움직였고, 같은 일이 또 일어나도 문서가 거짓이 되지 않게 했다 |
+
+> 하지 않은 것: `verify_orbstack.sh` `v5_app()` 의 `0.0.0.0` 바인딩 구분(격차 3), 증거 파일 커밋(격차 4), README 절 번호 재정렬(격차 5). 이번 작업 범위 밖이라 그대로 뒀다.
 
 #### 🧪 실행 검증 기록
 
-모두 **저장소를 수정하지 않고** 임시 디렉토리(`scratchpad/t`, `scratchpad/arch`)에서 수행했다. `git status --porcelain` 결과 없음(저장소 무변경) 확인. 패키지 설치·네트워크 접근 없음.
+#1~#12 (2026-09-19, 점검 시점) 은 모두 **저장소를 수정하지 않고** 임시 디렉토리(`scratchpad/t`, `scratchpad/arch`)에서 수행했다. `git status --porcelain` 결과 없음(저장소 무변경) 확인.
+#13~#19 (2026-09-21, 보완 시점) 은 위 「🔧 2026-09-21 보완 내역」 을 적용한 **뒤** 같은 절차를 다시 돌린 결과다 — 수정 전/후를 같은 검증으로 비교했고 #1~#10 의 결과는 변하지 않았다.
+양쪽 모두 패키지 설치·네트워크 접근 없음.
+#20~#22 (2026-09-21, **검수 시점**) 는 보완분을 적대적으로 재검증한 결과다 — 보완 에이전트의 보고를 믿지 않고 같은 명령을 직접 다시 돌렸고, 그 과정에서 찾은 결함 1건(`LIMIT IN`)을 고친 뒤의 결과다.
 
 | # | 명령 | 결과 |
 | --- | --- | --- |
@@ -541,10 +573,21 @@ DISK Used  : 23%
 | 8 | `bash src/archive_logs.sh` (원본, AGENT_LOG_DIR 만 임시 지정) | `[ERROR] Cannot create archive directory: /var/log/monitor/agent-app/archive` + **exit 1** — B2-2 격차 재현 |
 | 9 | `AGENT_LOG_DIR=/nonexistent bash src/archive_logs.sh` | `[WARNING] Source log directory not found` + exit 0 — 안전 종료 (B2-4) |
 | 10 | ARCHIVE_DIR 만 임시 경로로 바꾼 **사본**으로 실행(원본 무변경) | mtime 10일 `old.log` 만 `old.log.20260919_132522.gz` 로 압축·이동, 1일 파일 보존 → `compressed=1`; 이어서 40일 지난 .gz 삭제 → `deleted=1` (B2-1·B2-3) |
-| 11 | `grep -rn "python\|\.py" src/ demo.sh verify_orbstack.sh` | 자동화 스크립트 안에서 Python 호출 **없음**. 유일한 히트는 `verify_orbstack.sh:163` 의 `apt-get install ... python3`(패키지 설치). `tools/*.py` 5개는 문서 빌드·바이너리 정적 분석 학습용이며 미션 요구(monitor/report/archive) 구현에 관여하지 않음 → **"Bash로만" 제약 위반 없음** |
-| 12 | `find` 로 `.github` 확인 | 존재하지 않음 — README 구조도(`README.md:607`)와 불일치 |
+| 11 | `grep -rn "python\|\.py" src/ demo.sh verify_orbstack.sh` | 자동화 스크립트 안에서 Python 호출 **없음**. 유일한 히트는 `verify_orbstack.sh` `install_base()` 의 `apt-get install ... python3`(패키지 설치). `tools/*.py` 5개는 문서 빌드·바이너리 정적 분석 학습용이며 미션 요구(monitor/report/archive) 구현에 관여하지 않음 → **"Bash로만" 제약 위반 없음** |
+| 12 | `find` 로 `.github` 확인 | 존재하지 않음 — README 구조도(`## 2. 디렉토리 구조` 의 `.github/workflows/verify.yml` 줄)와 불일치 |
+| 13 | **축4 재현·수정 확인** — `src/01_ssh_hardening.sh` 삭제 후 `bash verify_orbstack.sh` | 수정 전: `✗ orb CLI not found` 만 나오고 파일 누락을 **감지 못함**. 수정 후: `✗ missing artifact: .../src/01_ssh_hardening.sh` + exit 1. 원복 후 `✓ 11 source artifacts exist` 로 복귀 |
+| 14 | `run_src()` 인자 전개 단위 확인 (`msh` 를 echo 로 치환) | `run_src 01_ssh_hardening.sh` → `bash '<repo>/src/01_ssh_hardening.sh'`, `run_src 06_… "SOURCE_DIR='/tmp/b1-1-stage'"` → `SOURCE_DIR='/tmp/b1-1-stage' bash '<repo>/src/06_deploy_app_and_scripts.sh'` |
+| 15 | 배타 검사 단위 확인 — `ufw status verbose` 모의 출력 5종 | 정상(v4/v6 4줄) → OK / `22/tcp` 잔존 → **VIOLATION** / `OpenSSH` 프로파일 → **VIOLATION** / 서브넷 `Anywhere ALLOW IN 192.168.1.0/24` → **VIOLATION** / `ALLOW OUT` 만 추가 → OK(인바운드 아님) |
+| 16 | 삭제 대상 추출 단위 확인 — `ufw status numbered` 모의 출력(11줄, v6·2자리 번호 혼재) | `11 10 9 6 2 1` 을 **내림차순**으로 추출(= 큰 번호부터 삭제). 이미 깨끗한 경우·`Status: inactive` 인 경우 모두 빈 결과 |
+| 17 | `top -bn2 -d 1` CPU 샘플링 | `Cpu(s)` 라인 2개 확인, 두 번째 값만 채택됨. 소요 약 1.2초 |
+| 18 | 수정 후 `bash -n` 13개 + monitor/report/archive 재실행 | 전부 수정 전과 동일 — 문법 오류 0, `monitor.sh` 로그 라인 포맷 일치, `report.sh` 집계값 동일(CPU avg 18.1 / Data Points 3), `archive_logs.sh` 예외 처리 동일 |
+| 19 | `ARCHIVE_DIR` 만 임시 경로로 바꾼 **사본**으로 `archive_logs.sh` 재실행 (원본 무변경) | 디렉토리가 존재하고 쓰기 가능하면 `compressed=1, deleted=1` + exit 0 — B2 의 유일한 결함이 스크립트 로직이 아니라 **디렉토리 준비 단계 부재**였음을 다시 확인. `/var/log/monitor/...` 의 실제 생성은 root 권한 + 실제 머신이 필요하므로 이 환경에서는 실행하지 않았고, `src/04` 의 코드와 `verify_orbstack.sh` `v4_acl()` 의 단언(`sudo -u agent-admin test -w`)으로 갈음한다. 그래서 위 #8/#9 (원본 경로 그대로) 는 이 환경에서 여전히 같은 에러를 재현한다 |
+| 20 | **검수 재현** — `bash -n` 13개 + `demo.sh` 드라이런 + `bash verify_orbstack.sh` | 문법 오류 0/13. `demo.sh` 는 Linux 호스트라 `⚠ 이 스크립트는 macOS 전용이다` 로 exit 1(설계대로). `verify_orbstack.sh` 는 `✓ 11 source artifacts exist` → `✗ orb CLI not found` exit 1. `src/01_ssh_hardening.sh` 를 지운 사본에서는 `✗ missing artifact: …/src/01_ssh_hardening.sh` — #13 재현됨 |
+| 21 | **검수 재현** — monitor/report/archive 실행 + `0.10` 표의 `파일:줄번호` 근거 대조 | `monitor.sh` 앱 미기동 → exit 1 / 정상 → `CPU 11.8% MEM 33.8% DISK 32%` + 포맷 일치 + exit 0(소요 1.3초). 11MB 로그 → `monitor.log.1` 회전. `report.sh` → CPU avg 18.1 / Data Points 3, 구간 필터 1건. `archive_logs.sh` → 사본에서 `compressed=1, deleted=1`. `src/*.sh` 줄번호 근거 **41건 전수** 및 `docs/*.md` 근거 7건을 열어 대조 — 어긋남 0건. `v1_ssh()`~`collect_evidence()` 함수 좌표 14개 전부 실재 |
+| 22 | **검수에서 찾은 결함** — `ufw limit 22/tcp` 모의 출력 투입 | 수정 전: 삭제 대상 0건 + 배타 검사 위반 0건 → **22 번이 열린 채 R1-4 가 통과**. `LIMIT IN` 을 패턴에 추가한 뒤 모의 12종(정상·주석·v6·`OpenSSH`·서브넷·`ALLOW OUT`·`LIMIT OUT`·`DENY IN`·inactive 포함) 재실행 → 삭제 대상 `9 7 6 2 1`, 위반 탐지 4/4, 거짓 양성 0 |
 
-**미실행 항목**: SSH(20022/PermitRootLogin) 실제 적용, UFW 실제 활성/규칙, 계정·그룹·ACL 실제 생성, `agent-app` 바이너리 Boot Sequence, cron 실제 누적. 모두 root 권한 + Ubuntu 24.04 머신(OrbStack) + 네트워크 설치가 필요해 이 환경에서는 실행하지 않았고, 대신 스크립트 코드와 `verify_orbstack.sh` 의 자동 단언, 수행내역서의 캡처를 증거로 판정했다.
+**미실행 항목**: SSH(20022/PermitRootLogin) 실제 적용, UFW 실제 활성/규칙 및 22/tcp 제거, 계정·그룹·ACL 실제 생성, `/var/log/monitor/.../archive` 실제 생성, `agent-app` 바이너리 Boot Sequence, cron 실제 누적. 모두 root 권한 + Ubuntu 24.04 머신(OrbStack) + 네트워크 설치가 필요해 이 환경에서는 실행하지 않았고, 대신 스크립트 코드와 `verify_orbstack.sh` 의 자동 단언, 수행내역서의 캡처를 증거로 판정했다.
+그래서 2026-09-21 보완분도 **머신이 필요한 부분(§1~§7 실제 적용)은 코드와 단언까지**, **머신 없이 돌려볼 수 있는 부분(하네스 preflight, 파싱 로직, CPU 샘플링, monitor/report/archive 재실행)은 실제 실행까지** 확인했다 — 어디까지가 관측이고 어디부터가 코드 근거인지 구분해 둔다.
 
 ---
 
@@ -595,7 +638,7 @@ codyssey_B1-1/
 │   └── 07_cron_schedule.sh         ← cron 매분/매일 등록
 │
 ├── demo.sh                         ← 시연 자동화 (시연 모드)
-├── verify_orbstack.sh              ← OrbStack 기반 자동 검증
+├── verify_orbstack.sh              ← OrbStack 기반 자동 검증 (src/01~07 을 그대로 실행하고 결과를 단언)
 │
 ├── tools/                          ← 분석 / 문서 빌드 도구 (학습용)
 │   ├── build_docs.py               ← docs/md/*.md + README.md → docs/html/index.html
@@ -632,6 +675,7 @@ codyssey_B1-1/
 ### 3.2 방화벽 (UFW 또는 firewalld 택1)
 
 - 활성화 후 **인바운드는 `20022/tcp`(SSH), `15034/tcp`(APP) 만 허용**
+- "만 허용"은 규칙을 더해서가 아니라 **남은 규칙을 지워야** 성립한다 — `02_firewall_allowlist.sh` 가 그 둘이 아닌 인바운드 허용 규칙(`ALLOW IN`·`LIMIT IN`)을 번호 역순으로 제거하고, 같은 스크립트와 `verify_orbstack.sh` `v2_ufw()` 가 "예외 0건"을 단언한다
 - 검증: `ufw status` 또는 `firewall-cmd --list-all`
 
 ### 3.3 계정 / 그룹
@@ -698,6 +742,7 @@ $AGENT_HOME                          (= /home/agent-admin/agent-app)
    - 방화벽 활성 상태 → 비활성 시 `[WARNING]`
 3. **자원 수집**
    - CPU 사용률(%) / MEM 사용률(%) / 디스크 사용률(/, Used %)
+   - CPU 는 `top -bn2 -d 1` 의 **두 번째 샘플** — 1회 샘플은 부팅 이후 누적 평균에 가까워 '지금'이 아니다
 4. **임계값 경고 (경고만)**
    - CPU `> 20%`, MEM `> 10%`, DISK `> 80%` → `[WARNING]`
 5. **로그 기록**
@@ -726,6 +771,7 @@ $AGENT_HOME                          (= /home/agent-admin/agent-app)
 
 - **7일 경과** `/var/log/agent-app/*.log` → `gzip` 압축
 - 아카이브 이동: `/var/log/monitor/agent-app/archive/`
+  - 이 디렉토리는 `04_directories_and_acl.sh` 가 **setup 단계에서** 만든다(`root:agent-core`, `770`). cron 실행자 `agent-admin` 은 `/var/log` 아래에 디렉토리를 만들 수 없으므로, 만드는 일과 쓰는 일의 권한 경계를 나눈 것
 - **30일 경과** `*.gz` 삭제
 - 디렉토리 미존재 / 권한 부족 / 대상 0개 → 안전 종료(WARNING)
 

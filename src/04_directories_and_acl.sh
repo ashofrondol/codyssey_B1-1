@@ -56,11 +56,29 @@ step "ACL 부여: $LOG_DIR → agent-core (rwx + default 상속)"
 sudo setfacl -m  g:agent-core:rwx "${LOG_DIR}"
 sudo setfacl -dm g:agent-core:rwx "${LOG_DIR}"
 
+# ── 보너스 2: 로그 아카이브 디렉토리 ─────────────────────────────────────────
+# archive_logs.sh 는 매일 03:10 cron(실행자 agent-admin)으로 돈다. 그런데 /var/log 는
+# root 소유라 agent-admin 은 그 아래에 디렉토리를 만들 수 없다. 스크립트 자체의
+# `mkdir -p` 는 그래서 매번 실패하고, 보너스 2 가 통째로 죽는다.
+# → 만드는 일은 sudo 가 있는 setup 단계(여기)의 몫이고, cron 은 쓰기만 하면 된다.
+ARCHIVE_DIR="/var/log/monitor/agent-app/archive"
+
+step "디렉토리 생성: $ARCHIVE_DIR (보너스 2 아카이브 대상)"
+sudo mkdir -p "${ARCHIVE_DIR}"
+
+step "소유/권한: root:agent-core, 770 (agent-test 는 진입 불가)"
+sudo chown root:agent-core "${ARCHIVE_DIR}"
+sudo chmod 770 "${ARCHIVE_DIR}"
+
+step "ACL 부여: $ARCHIVE_DIR → agent-core (rwx + default 상속)"
+sudo setfacl -m  g:agent-core:rwx "${ARCHIVE_DIR}"
+sudo setfacl -dm g:agent-core:rwx "${ARCHIVE_DIR}"
+
 # 검증
 echo
 echo "─── 검증 ────────────────────────────"
 sudo ls -ld "${AGENT_HOME}" "${AGENT_HOME}/upload_files" \
-            "${AGENT_HOME}/api_keys" "${LOG_DIR}"
+            "${AGENT_HOME}/api_keys" "${LOG_DIR}" "${ARCHIVE_DIR}"
 echo
 echo "--- getfacl: upload_files ---"
 sudo getfacl "${AGENT_HOME}/upload_files"
@@ -70,5 +88,16 @@ sudo getfacl "${AGENT_HOME}/api_keys"
 echo
 echo "--- getfacl: $LOG_DIR ---"
 sudo getfacl "${LOG_DIR}"
+echo
+echo "--- getfacl: $ARCHIVE_DIR ---"
+sudo getfacl "${ARCHIVE_DIR}"
+echo
+echo "--- cron 실행자(agent-admin)가 아카이브 디렉토리에 쓸 수 있는가 ---"
+if sudo -u agent-admin test -w "${ARCHIVE_DIR}"; then
+    echo "OK: agent-admin 쓰기 가능 → 매일 03:10 archive_logs.sh 가 동작한다"
+else
+    echo "[ERROR] agent-admin 이 ${ARCHIVE_DIR} 에 쓸 수 없다 — 보너스 2 가 매일 실패한다" >&2
+    exit 1
+fi
 echo "─────────────────────────────────────"
 echo "[04] Directories & ACL 완료"

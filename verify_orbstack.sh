@@ -112,15 +112,51 @@ msh_q() {
     orb -m "$MACHINE" bash -lc "$1" | _orb_clean
 }
 
+# ── 실행 대상 산출물 목록 ────────────────────────────────────────────────────
+# 이 스크립트는 setup 로직을 스스로 갖지 않는다. src/ 의 산출물을 '그대로' 실행하고
+# 그 결과만 검증한다.
+#   왜: 예전에는 §1~§7 의 setup 명령을 이 파일에 손으로 베껴 뒀다. 그래서 src/01~07 을
+#   통째로 지워도 ALL CHECKS PASSED 가 찍혔다 — 검증이 산출물이 아니라 사본을 채점하고
+#   있었던 것이다. 아래 목록이 곧 '실행 대상'이자 preflight 의 검사 대상이다.
+REQUIRED_SOURCES=(
+    src/01_ssh_hardening.sh
+    src/02_firewall_allowlist.sh
+    src/03_users_and_groups.sh
+    src/04_directories_and_acl.sh
+    src/05_env_and_keyfile.sh
+    src/06_deploy_app_and_scripts.sh
+    src/07_cron_schedule.sh
+    src/monitor.sh
+    src/report.sh
+    src/archive_logs.sh
+    bin/agent-app
+)
+
+# src/06 은 "원본 4종이 한 디렉토리에 모여 있다"(SOURCE_DIR)를 전제로 한다.
+# 저장소는 스크립트가 src/, 바이너리가 bin/ 으로 나뉘므로 머신 안에서 한 번 모아 넘긴다.
+# (저장소 경로를 그대로 SOURCE_DIR 로 주면 src/06 의 dos2unix 가 원본을 고쳐버린다.)
+STAGE_DIR="/tmp/b1-1-stage"
+
+# src/NN_*.sh 를 머신 안에서 그대로 실행한다.
+#   $1        = src/ 아래 스크립트 파일명
+#   $2.. (선택) = 명령 앞에 붙일 환경변수 (예: SOURCE_DIR=/tmp/b1-1-stage)
+# ⚠ setup 명령을 이 파일에 다시 적지 말 것. 그 순간 검증은 또 사본을 보게 된다.
+run_src() {
+    local script="$1"; shift
+    msh "${*:+$* }bash '$WORKDIR/src/$script'"
+}
+
 # ── 사전 점검 ────────────────────────────────────────────────────────────────
 preflight() {
     section "Preflight"
-    command -v orb >/dev/null 2>&1 || die "orb CLI not found. Install OrbStack first."
-    for f in src/monitor.sh src/report.sh \
-             src/archive_logs.sh bin/agent-app; do
-        [[ -f "$WORKDIR/$f" ]] || die "missing $WORKDIR/$f"
+    # 산출물 검사를 orb 검사보다 먼저 둔다 — 산출물이 없으면 머신을 띄울 이유가 없고,
+    # "orb 없음" 뒤에 숨어 파일 누락이 조용히 넘어가지도 않는다.
+    for f in "${REQUIRED_SOURCES[@]}"; do
+        [[ -f "$WORKDIR/$f" ]] || die "missing artifact: $WORKDIR/$f"
     done
-    ok "orb CLI present, all source files exist"
+    ok "${#REQUIRED_SOURCES[@]} source artifacts exist"
+    command -v orb >/dev/null 2>&1 || die "orb CLI not found. Install OrbStack first."
+    ok "orb CLI present"
 }
 
 # ── 머신 준비 ────────────────────────────────────────────────────────────────
@@ -174,14 +210,7 @@ s1_ssh() {
   • 'security through obscurity is not security' — 첫 방어선일 뿐, fail2ban·
     키 기반 인증 등과 함께 써야 실효성을 가진다는 점은 별도 학습."
     section "§1  SSH — port 20022 + PermitRootLogin no"
-    msh "sudo cp -a /etc/ssh/sshd_config /etc/ssh/sshd_config.bak.$(date +%Y%m%d) 2>/dev/null || true
-         sudo sed -i -E \
-             -e 's/^#?Port .*/Port 20022/' \
-             -e 's/^#?PermitRootLogin .*/PermitRootLogin no/' \
-             /etc/ssh/sshd_config
-         sudo systemctl disable --now ssh.socket 2>/dev/null || true
-         sudo systemctl enable --now ssh
-         sudo systemctl restart ssh"
+    run_src 01_ssh_hardening.sh
 }
 v1_ssh() {
     msh_q "grep -E '^Port 20022$'         /etc/ssh/sshd_config" >/dev/null \
@@ -203,21 +232,26 @@ s2_ufw() {
     'ufw allow 20022/tcp'. 같은 netfilter 룰을 만든다.
   • 결과: 우리가 의도한 두 포트 외 어떤 연결도 막힌다 = 공격 표면 최소화."
     section "§2  UFW — allow 20022/15034 only"
-    # systemd unit 까지 명시적으로 enable/start — OrbStack 등 일부 환경에선
-    # `ufw enable` 만으로 systemd unit 이 활성화되지 않는 경우가 있어 보강.
-    msh "sudo ufw default deny  incoming
-         sudo ufw default allow outgoing
-         sudo ufw allow 20022/tcp comment 'SSH'
-         sudo ufw allow 15034/tcp comment 'AGENT APP'
-         sudo ufw --force enable
-         sudo systemctl enable --now ufw"
+    run_src 02_firewall_allowlist.sh
 }
 v2_ufw() {
     out="$(msh_q 'sudo ufw status verbose')"
     echo "$out" | grep -q 'Status: active'                     || die "ufw not active"
+    echo "$out" | grep -q 'Default: deny (incoming)'           || die "default incoming policy is not deny"
     echo "$out" | grep -qE '20022/tcp\s+ALLOW IN\s+Anywhere'   || die "20022 rule missing"
     echo "$out" | grep -qE '15034/tcp\s+ALLOW IN\s+Anywhere'   || die "15034 rule missing"
-    ok "UFW active + only 20022/15034 allowed"
+
+    # R1-4 는 "20022/15034 **만** 허용"이다. 두 규칙의 '존재'만 grep 하면 22/tcp 가
+    # 함께 열려 있어도 통과한다 — 예전 이 검사가 정확히 그랬다.
+    # 'ufw status verbose' 의 To 열($1)이 두 포트가 아닌 인바운드 허용 라인은 전부 위반.
+    # ALLOW 만 보면 안 된다 — 'ufw limit 22/tcp' 가 남긴 LIMIT IN 도 인바운드를 허용한다.
+    extra="$(echo "$out" | awk '/(ALLOW|LIMIT) IN/ && $1 != "20022/tcp" && $1 != "15034/tcp"')"
+    if [[ -n "$extra" ]]; then
+        printf "%s\n" "$extra" | sed 's/^/      /' | tee -a "$LOG"
+        die "R1-4 violated: inbound ALLOW/LIMIT IN rules other than 20022/15034 exist (see above)"
+    fi
+    allow_n="$(echo "$out" | grep -cE '(ALLOW|LIMIT) IN' || true)"
+    ok "UFW active + default deny + inbound allow rules = ${allow_n} (20022/15034 only)"
 }
 
 # ── §3 계정/그룹 ──────────────────────────────────────────────────────────────
@@ -232,16 +266,7 @@ s3_users() {
   • agent-common (admin/dev/test 3명) → 업로드 폴더 공유
   • agent-core   (admin/dev 2명)      → API 키·운영 로그 (test 제외)"
     section "§3  Users & groups"
-    msh "sudo groupadd -f agent-common
-         sudo groupadd -f agent-core
-         for u in agent-admin agent-dev agent-test; do
-             id \"\$u\" >/dev/null 2>&1 || sudo useradd -m -s /bin/bash \"\$u\"
-         done
-         sudo usermod -aG agent-common agent-admin
-         sudo usermod -aG agent-common agent-dev
-         sudo usermod -aG agent-common agent-test
-         sudo usermod -aG agent-core   agent-admin
-         sudo usermod -aG agent-core   agent-dev"
+    run_src 03_users_and_groups.sh
 }
 v3_users() {
     # 'msh_q | grep -q' 패턴은 grep 이 매치 즉시 종료할 때 위쪽이 SIGPIPE 를
@@ -272,23 +297,7 @@ s4_acl() {
   • monitor.sh 가 매분 로그를 새로 쓰는 환경에서 default 가 없으면 시간이
     지날수록 정책이 풀려 다른 사용자가 로그를 읽거나 못 읽게 된다."
     section "§4  Directories + ACL"
-    msh 'AH=/home/agent-admin/agent-app; LD=/var/log/agent-app
-         sudo -u agent-admin mkdir -p "$AH"/{upload_files,api_keys,bin}
-         sudo mkdir -p "$LD"
-         sudo chown -R agent-admin:agent-common "$AH"
-         sudo chgrp -R agent-core "$AH/api_keys"
-         sudo chown root:agent-core "$LD"
-         sudo chmod 750 "$AH"
-         sudo chmod 770 "$AH/upload_files"
-         sudo chmod 770 "$AH/api_keys"
-         sudo chmod 770 "$LD"
-         sudo chmod 750 "$AH/bin"
-         sudo setfacl -m  g:agent-common:rwx "$AH/upload_files"
-         sudo setfacl -dm g:agent-common:rwx "$AH/upload_files"
-         sudo setfacl -m  g:agent-core:rwx   "$AH/api_keys"
-         sudo setfacl -dm g:agent-core:rwx   "$AH/api_keys"
-         sudo setfacl -m  g:agent-core:rwx   "$LD"
-         sudo setfacl -dm g:agent-core:rwx   "$LD"'
+    run_src 04_directories_and_acl.sh
 }
 v4_acl() {
     # 'msh_q | grep -q' 패턴은 grep 이 매치 즉시 종료할 때 위쪽이 SIGPIPE 를
@@ -306,7 +315,16 @@ v4_acl() {
     echo "$lfacl" | grep -q 'default:group:agent-core:rwx' \
         || die "log dir default ACL missing"
 
-    ok "directories + default ACLs present"
+    # 보너스 2 의 아카이브 디렉토리. cron 실행자(agent-admin)는 /var/log 에 쓸 수 없으므로
+    # 이 디렉토리를 setup 단계에서 미리 만들어 주지 않으면 매일 03:10 작업이 exit 1 로 죽는다.
+    # getfacl 이 실패(디렉토리 부재)해도 set -e 로 조용히 죽지 않도록 받아낸 뒤 die 로 말한다.
+    afacl="$(msh_q 'sudo getfacl /var/log/monitor/agent-app/archive' || true)"
+    echo "$afacl" | grep -q 'default:group:agent-core:rwx' \
+        || die "archive dir (/var/log/monitor/agent-app/archive) default ACL missing"
+    msh_q "sudo -u agent-admin test -w /var/log/monitor/agent-app/archive" \
+        || die "archive dir not writable by agent-admin (cron job would fail every night)"
+
+    ok "directories + default ACLs present (archive dir writable by agent-admin)"
 }
 
 # ── §5 환경변수 / 키파일 / 앱 배포 / 실행 / 부트체크 ──────────────────────────
@@ -320,28 +338,11 @@ s5_app_setup() {
   • agent-app 바이너리를 \$AGENT_HOME 에 배치 (0750, x 비트 필요)
   ※ 이 바이너리는 Ubuntu 24.04 의 glibc 에 맞춰 빌드 — 22.04 머신은 GLIBC 에러."
     section "§5  Env vars + key file + deploy"
-    # 환경변수 영구 등록
-    msh "sudo -u agent-admin bash -c 'grep -q AGENT_HOME ~/.bashrc 2>/dev/null || cat >> ~/.bashrc <<EOF
+    run_src 05_env_and_keyfile.sh
 
-# ----- Agent App ENV -----
-export AGENT_HOME=/home/agent-admin/agent-app
-export AGENT_PORT=15034
-export AGENT_UPLOAD_DIR=\\\$AGENT_HOME/upload_files
-export AGENT_KEY_PATH=\\\$AGENT_HOME/api_keys/t_secret.key
-export AGENT_LOG_DIR=/var/log/agent-app
-EOF'"
-
-    # 키 파일
-    msh "echo agent_api_key_test | sudo tee /home/agent-admin/agent-app/api_keys/t_secret.key >/dev/null
-         sudo chown agent-admin:agent-core /home/agent-admin/agent-app/api_keys/t_secret.key
-         sudo chmod 640 /home/agent-admin/agent-app/api_keys/t_secret.key"
-
-    # CRLF 정리 + 배포 (OrbStack 자동 마운트로 macOS 경로 직접 사용)
-    msh "sudo dos2unix '$WORKDIR/src/monitor.sh' '$WORKDIR/src/report.sh' '$WORKDIR/src/archive_logs.sh' 2>/dev/null || true
-         sudo install -m 0750 -o agent-admin -g agent-common '$WORKDIR/bin/agent-app'         /home/agent-admin/agent-app/agent-app
-         sudo install -m 0750 -o agent-dev   -g agent-core   '$WORKDIR/src/monitor.sh'        /home/agent-admin/agent-app/bin/monitor.sh
-         sudo install -m 0750 -o agent-dev   -g agent-core   '$WORKDIR/src/report.sh'         /home/agent-admin/agent-app/bin/report.sh
-         sudo install -m 0750 -o agent-dev   -g agent-core   '$WORKDIR/src/archive_logs.sh'   /home/agent-admin/agent-app/bin/archive_logs.sh"
+    # src/06 이 요구하는 SOURCE_DIR 한 곳에 원본 4종(스크립트 3 + 바이너리 1)을 모은다.
+    msh "rm -rf '$STAGE_DIR' && mkdir -p '$STAGE_DIR' && cp '$WORKDIR/src/monitor.sh' '$WORKDIR/src/report.sh' '$WORKDIR/src/archive_logs.sh' '$WORKDIR/bin/agent-app' '$STAGE_DIR/'"
+    run_src 06_deploy_app_and_scripts.sh "SOURCE_DIR='$STAGE_DIR'"
 }
 
 s5_app_run() {
@@ -438,12 +439,7 @@ s7_cron_setup() {
   • 실행 계정은 agent-admin — agent-core 그룹이라 로그 디렉토리 쓰기 가능.
   • 검증: 등록 직후 라인 수 기록 → 70초 대기 → 라인 수 증가 확인."
     section "§7  cron — register every-minute job"
-    msh "sudo systemctl enable --now cron
-         sudo -u agent-admin bash -c '
-             ( crontab -l 2>/dev/null | grep -v monitor.sh ;
-               echo \"* * * * * AGENT_HOME=/home/agent-admin/agent-app AGENT_PORT=15034 AGENT_LOG_DIR=/var/log/agent-app /home/agent-admin/agent-app/bin/monitor.sh >> /home/agent-admin/monitor.cron.log 2>&1\"
-             ) | crontab -
-         '"
+    run_src 07_cron_schedule.sh
     crontab_dump="$(msh_q 'sudo -u agent-admin crontab -l')"
     echo "$crontab_dump" | grep -q monitor.sh \
         || die "crontab not registered"

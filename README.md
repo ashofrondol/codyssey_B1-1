@@ -518,7 +518,7 @@ DISK Used  : 23%
    → 보완: 한 번 실행해 나온 `.verify-artifacts/evidence.txt` + `agent.out` 을 저장소에 커밋(또는 문서에 통째로 인라인)하고, 캡처 블록마다 "예시"인지 "실제 출력"인지 라벨을 달고 체크박스를 채울 것. 특히 8번 항목은 1분 간격 before/after 2회 캡처가 요구되므로 `wc -l` 2회 출력을 시각과 함께 남겨야 한다.
 
 5. **[경미] README 가 실제 저장소 상태와 어긋난다.**
-   `README.md:64` 가 `.github/workflows/verify.yml` 을 구조도에 명시하지만 해당 파일은 없다(커밋 `20c859d chore: verify.yml 삭제.` 로 제거됨). 또 `## 3. 최종 산출물`(`:67`)과 `## 3. 기능 요구 사항`(`:81`) 이 같은 번호를 쓴다. 그리고 README 최상단에 **과제 원문 명세 절이 없어** 무엇을 요구받았는지가 저장소만 보고는 확정되지 않는다.
+   `README.md:607` 가 `.github/workflows/verify.yml` 을 구조도에 명시하지만 해당 파일은 없다(커밋 `20c859d chore: verify.yml 삭제.` 로 제거됨). 또 `## 3. 최종 산출물`(`:67`)과 `## 3. 기능 요구 사항`(`:81`) 이 같은 번호를 쓴다. 그리고 README 최상단에 **과제 원문 명세 절이 없어** 무엇을 요구받았는지가 저장소만 보고는 확정되지 않는다.
    → 보완: 삭제된 워크플로 줄 제거, 절 번호 재정렬, 그리고 `0. 과제 명세` 절(원문 요구사항 + 학습 포인트)을 README 최상단에 추가.
 
 6. **[경미] R4-6 CPU 측정 정확도.**
@@ -542,7 +542,7 @@ DISK Used  : 23%
 | 9 | `AGENT_LOG_DIR=/nonexistent bash src/archive_logs.sh` | `[WARNING] Source log directory not found` + exit 0 — 안전 종료 (B2-4) |
 | 10 | ARCHIVE_DIR 만 임시 경로로 바꾼 **사본**으로 실행(원본 무변경) | mtime 10일 `old.log` 만 `old.log.20260919_132522.gz` 로 압축·이동, 1일 파일 보존 → `compressed=1`; 이어서 40일 지난 .gz 삭제 → `deleted=1` (B2-1·B2-3) |
 | 11 | `grep -rn "python\|\.py" src/ demo.sh verify_orbstack.sh` | 자동화 스크립트 안에서 Python 호출 **없음**. 유일한 히트는 `verify_orbstack.sh:163` 의 `apt-get install ... python3`(패키지 설치). `tools/*.py` 5개는 문서 빌드·바이너리 정적 분석 학습용이며 미션 요구(monitor/report/archive) 구현에 관여하지 않음 → **"Bash로만" 제약 위반 없음** |
-| 12 | `find` 로 `.github` 확인 | 존재하지 않음 — README 구조도(`README.md:64`)와 불일치 |
+| 12 | `find` 로 `.github` 확인 | 존재하지 않음 — README 구조도(`README.md:607`)와 불일치 |
 
 **미실행 항목**: SSH(20022/PermitRootLogin) 실제 적용, UFW 실제 활성/규칙, 계정·그룹·ACL 실제 생성, `agent-app` 바이너리 Boot Sequence, cron 실제 누적. 모두 root 권한 + Ubuntu 24.04 머신(OrbStack) + 네트워크 설치가 필요해 이 환경에서는 실행하지 않았고, 대신 스크립트 코드와 `verify_orbstack.sh` 의 자동 단언, 수행내역서의 캡처를 증거로 판정했다.
 

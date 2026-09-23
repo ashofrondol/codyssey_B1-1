@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="506" viewBox="0 0 880 506" role="img" aria-labelledby="title desc">
+<title id="title">top 한 줄에서 CPU 사용률을 오려 내는 법</title>
+<desc id="desc">monitor.sh 는 top 을 1초 간격으로 두 번 찍고, awk 로 Cpu(s) 줄을 공백과 쉼표에서 잘라 칸으로 나눈다. id 로 끝나는 9번째 칸의 바로 앞 칸(유휴 71.4)을 100 에서 빼 28.6 을 얻고, 두 줄 중 마지막 값만 END 에서 출력해 CPU:28.6% 로 기록한다. MEM 은 free 의 used/total, DISK 는 df 의 사용률에서 % 를 떼어 같은 방식으로 얻는다.</desc>
+<style>
+  text{font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Noto Sans CJK KR",sans-serif;font-size:15px;fill:#1D1F23}
+  .bg{fill:#FFFFFF}
+  .ts{font-size:13px;fill:#5B6069}
+  .th{font-size:17px;font-weight:700}
+  .tb{font-weight:700}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,"Noto Sans Mono CJK KR",monospace;font-size:13.5px}
+  .box{fill:#F4F3EF;stroke:#9A9CA3;stroke-width:1.5}
+  .zone{fill:#FAF9F6;stroke:#C9C6BE;stroke-width:1.2;stroke-dasharray:5 4}
+  .blue{fill:#E7EFF9;stroke:#1F5FAD;stroke-width:1.6}
+  .green{fill:#E6F4EC;stroke:#1B7F4B;stroke-width:1.6}
+  .orange{fill:#FCEFE0;stroke:#B25E09;stroke-width:1.6}
+  .red{fill:#FCEBEA;stroke:#B42318;stroke-width:1.6}
+  .purple{fill:#F1EAFB;stroke:#6E3FB0;stroke-width:1.6}
+  .yellow{fill:#FFF3C4;stroke:#A07800;stroke-width:1.6}
+  .c-blue{fill:#1F5FAD}.c-green{fill:#1B7F4B}.c-orange{fill:#B25E09}.c-red{fill:#B42318}.c-purple{fill:#6E3FB0}.c-muted{fill:#5B6069}
+  .ln{stroke:#6B7078;stroke-width:1.6;fill:none}
+  .ln-blue{stroke:#1F5FAD}.ln-green{stroke:#1B7F4B}.ln-red{stroke:#B42318}.ln-orange{stroke:#B25E09}.ln-purple{stroke:#6E3FB0}
+  .dash{stroke-dasharray:6 5}
+  .ah{fill:#6B7078}.ah-blue{fill:#1F5FAD}.ah-green{fill:#1B7F4B}.ah-red{fill:#B42318}.ah-orange{fill:#B25E09}.ah-purple{fill:#6E3FB0}
+  @media (prefers-color-scheme:dark){
+    text{fill:#E8E6E1}
+    .bg{fill:#1A1C20}
+    .ts{fill:#A9A69F}
+    .box{fill:#24262B;stroke:#6B6E76}
+    .zone{fill:#1F2125;stroke:#43464D}
+    .blue{fill:#1B2940;stroke:#7FB0F0}
+    .green{fill:#16281E;stroke:#5FC98E}
+    .orange{fill:#2E2215;stroke:#E8A05A}
+    .red{fill:#301A18;stroke:#F08A80}
+    .purple{fill:#251C33;stroke:#C3A0F0}
+    .yellow{fill:#2E2812;stroke:#E3C45C}
+    .c-blue{fill:#9CC4F5}.c-green{fill:#7ED3A3}.c-orange{fill:#EDB27A}.c-red{fill:#F4A39B}.c-purple{fill:#D2B8F4}.c-muted{fill:#A9A69F}
+    .ln{stroke:#8D9098}
+    .ln-blue{stroke:#7FB0F0}.ln-green{stroke:#5FC98E}.ln-red{stroke:#F08A80}.ln-orange{stroke:#E8A05A}.ln-purple{stroke:#C3A0F0}
+    .ah{fill:#8D9098}.ah-blue{fill:#7FB0F0}.ah-green{fill:#5FC98E}.ah-red{fill:#F08A80}.ah-orange{fill:#E8A05A}.ah-purple{fill:#C3A0F0}
+  }
+</style>
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-blue" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-red" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-green" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-orange" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-purple" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="880" height="506"/>
+<text class="th" x="28" y="34">top 한 줄에서 CPU 사용률을 오려 내는 법</text>
+<text class="ts" x="28" y="56">CPU 사용률 = 100 − 놀고 있던 비율(idle) · 값은 2026-09-23 실측</text>
+
+<rect class="box" x="28" y="72" width="400" height="32" rx="8"/>
+<text x="42" y="93" class="mono">top -bn2 -d 1 | awk -F'[ ,]+' '/Cpu\(s\)/ …'</text>
+<text x="448" y="93" class="ts">1초 간격으로 2번 찍음 → Cpu(s) 줄이 2개 나온다</text>
+
+<rect class="box" x="28" y="116" width="424" height="32" rx="8"/>
+<text x="42" y="137" class="mono c-muted">%Cpu(s): 15.2 us,  3.0 sy,  0.0 ni, 81.1 id, ...</text>
+<text x="472" y="137" class="ts">① 1번째 프레임 — 다음 줄이 v 를 덮어씀</text>
+
+<rect class="yellow" x="28" y="160" width="424" height="32" rx="8"/>
+<text x="42" y="181" class="mono">%Cpu(s): 19.9 us,  6.7 sy,  1.3 ni, 71.4 id, ...</text>
+<text x="472" y="181" class="ts tb">② 2번째 = 직전 1초의 값 → 채택</text>
+
+<line class="ln" x1="200" y1="192" x2="200" y2="240" marker-end="url(#arrow)"/>
+<text x="212" y="222" class="ts">공백·쉼표에서 잘라 칸으로 나눔 (-F'[ ,]+')</text>
+
+<text x="714" y="234" text-anchor="middle" class="ts">바로 앞 칸</text>
+<text x="806" y="234" text-anchor="middle" class="ts c-orange tb">id 로 끝남</text>
+<rect class="box" x="28" y="244" width="84" height="52" rx="8"/>
+<text x="70" y="264" text-anchor="middle" class="mono c-muted">$1</text>
+<text x="70" y="286" text-anchor="middle" class="mono">%Cpu(s):</text>
+<rect class="box" x="120" y="244" width="84" height="52" rx="8"/>
+<text x="162" y="264" text-anchor="middle" class="mono c-muted">$2</text>
+<text x="162" y="286" text-anchor="middle" class="mono">19.9</text>
+<rect class="box" x="212" y="244" width="84" height="52" rx="8"/>
+<text x="254" y="264" text-anchor="middle" class="mono c-muted">$3</text>
+<text x="254" y="286" text-anchor="middle" class="mono">us</text>
+<rect class="box" x="304" y="244" width="84" height="52" rx="8"/>
+<text x="346" y="264" text-anchor="middle" class="mono c-muted">$4</text>
+<text x="346" y="286" text-anchor="middle" class="mono">6.7</text>
+<rect class="box" x="396" y="244" width="84" height="52" rx="8"/>
+<text x="438" y="264" text-anchor="middle" class="mono c-muted">$5</text>
+<text x="438" y="286" text-anchor="middle" class="mono">sy</text>
+<rect class="box" x="488" y="244" width="84" height="52" rx="8"/>
+<text x="530" y="264" text-anchor="middle" class="mono c-muted">$6</text>
+<text x="530" y="286" text-anchor="middle" class="mono">1.3</text>
+<rect class="box" x="580" y="244" width="84" height="52" rx="8"/>
+<text x="622" y="264" text-anchor="middle" class="mono c-muted">$7</text>
+<text x="622" y="286" text-anchor="middle" class="mono">ni</text>
+<rect class="yellow" x="672" y="244" width="84" height="52" rx="8"/>
+<text x="714" y="264" text-anchor="middle" class="mono c-muted">$8</text>
+<text x="714" y="286" text-anchor="middle" class="mono tb">71.4</text>
+<rect class="orange" x="764" y="244" width="84" height="52" rx="8"/>
+<text x="806" y="264" text-anchor="middle" class="mono c-muted">$9</text>
+<text x="806" y="286" text-anchor="middle" class="mono tb">id</text>
+<text x="28" y="320" class="ts">us 사용자 프로그램 · sy 커널(시스템) · ni 우선순위 낮춘 작업 · id 놀고 있음</text>
+
+<path class="ln" d="M714,296 L714,336 L128,336 L128,356" marker-end="url(#arrow)"/>
+<rect class="bg" x="372" y="322" width="176" height="28"/>
+<text x="460" y="341" text-anchor="middle" class="ts">i=9 → 앞 칸 $(i-1) = 71.4</text>
+
+<rect class="box" x="28" y="360" width="200" height="36" rx="8"/>
+<text x="128" y="383" text-anchor="middle" class="mono">v = 100 − 71.4 = 28.6</text>
+<rect class="box" x="260" y="360" width="140" height="36" rx="8"/>
+<text x="330" y="383" text-anchor="middle" class="mono">END {print v}</text>
+<rect class="box" x="432" y="360" width="140" height="36" rx="8"/>
+<text x="502" y="383" text-anchor="middle" class="mono">printf "%.1f"</text>
+<rect class="green" x="604" y="360" width="120" height="36" rx="8"/>
+<text x="664" y="383" text-anchor="middle" class="mono tb c-green">CPU:28.6%</text>
+<line class="ln" x1="228" y1="378" x2="256" y2="378" marker-end="url(#arrow)"/>
+<line class="ln" x1="400" y1="378" x2="428" y2="378" marker-end="url(#arrow)"/>
+<line class="ln ln-green" x1="572" y1="378" x2="600" y2="378" marker-end="url(#arrow-green)"/>
+<text x="740" y="376" class="ts">마지막 v 만 출력</text>
+<text x="740" y="393" class="ts">→ 로그 한 줄에</text>
+
+<text x="28" y="434" class="ts">같은 방법 — MEM 과 DISK (보라 = 명령이 내놓은 원래 글자)</text>
+<rect class="purple" x="28" y="446" width="288" height="36" rx="8"/>
+<text x="42" y="469" class="mono">free → Mem: 65206144 20104912 …</text>
+<line class="ln" x1="316" y1="464" x2="340" y2="464" marker-end="url(#arrow)"/>
+<rect class="box" x="344" y="446" width="156" height="36" rx="8"/>
+<text x="422" y="469" text-anchor="middle" class="mono">$3/$2*100 = 30.8</text>
+<rect class="purple" x="524" y="446" width="168" height="36" rx="8"/>
+<text x="538" y="469" class="mono">df -P / → … 25% /</text>
+<line class="ln" x1="692" y1="464" x2="716" y2="464" marker-end="url(#arrow)"/>
+<rect class="box" x="720" y="446" width="128" height="36" rx="8"/>
+<text x="784" y="469" text-anchor="middle" class="mono">gsub % → 25</text>
+</svg>

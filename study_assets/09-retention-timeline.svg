@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="460" viewBox="0 0 880 460" role="img" aria-labelledby="title desc">
+<title id="title">시간 기반 보존 — find -mtime 이 실제로 고르는 파일</title>
+<desc id="desc">archive_logs.sh 를 나이가 다른 모의 파일로 실행한 결과. /var/log/agent-app 의 *.log 중 1일·7.5일 된 파일은 남고 8일·10일 된 파일만 압축되어 archive 로 옮겨졌으며, 이름이 *.log 가 아닌 monitor.log.1 은 10일이어도 대상이 아니다. archive 의 .gz 중 20일·30.5일은 남고 31일·40일은 삭제되었고, 새로 만든 .gz 는 압축한 순간이 수정 시각이라 0일부터 다시 센다.</desc>
+<style>
+  text{font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Noto Sans CJK KR",sans-serif;font-size:15px;fill:#1D1F23}
+  .bg{fill:#FFFFFF}
+  .ts{font-size:13px;fill:#5B6069}
+  .th{font-size:17px;font-weight:700}
+  .tb{font-weight:700}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,"Noto Sans Mono CJK KR",monospace;font-size:13.5px}
+  .box{fill:#F4F3EF;stroke:#9A9CA3;stroke-width:1.5}
+  .zone{fill:#FAF9F6;stroke:#C9C6BE;stroke-width:1.2;stroke-dasharray:5 4}
+  .blue{fill:#E7EFF9;stroke:#1F5FAD;stroke-width:1.6}
+  .green{fill:#E6F4EC;stroke:#1B7F4B;stroke-width:1.6}
+  .orange{fill:#FCEFE0;stroke:#B25E09;stroke-width:1.6}
+  .red{fill:#FCEBEA;stroke:#B42318;stroke-width:1.6}
+  .purple{fill:#F1EAFB;stroke:#6E3FB0;stroke-width:1.6}
+  .yellow{fill:#FFF3C4;stroke:#A07800;stroke-width:1.6}
+  .c-blue{fill:#1F5FAD}.c-green{fill:#1B7F4B}.c-orange{fill:#B25E09}.c-red{fill:#B42318}.c-purple{fill:#6E3FB0}.c-muted{fill:#5B6069}
+  .ln{stroke:#6B7078;stroke-width:1.6;fill:none}
+  .ln-blue{stroke:#1F5FAD}.ln-green{stroke:#1B7F4B}.ln-red{stroke:#B42318}.ln-orange{stroke:#B25E09}.ln-purple{stroke:#6E3FB0}
+  .dash{stroke-dasharray:6 5}
+  .ah{fill:#6B7078}.ah-blue{fill:#1F5FAD}.ah-green{fill:#1B7F4B}.ah-red{fill:#B42318}.ah-orange{fill:#B25E09}.ah-purple{fill:#6E3FB0}
+  @media (prefers-color-scheme:dark){
+    text{fill:#E8E6E1}
+    .bg{fill:#1A1C20}
+    .ts{fill:#A9A69F}
+    .box{fill:#24262B;stroke:#6B6E76}
+    .zone{fill:#1F2125;stroke:#43464D}
+    .blue{fill:#1B2940;stroke:#7FB0F0}
+    .green{fill:#16281E;stroke:#5FC98E}
+    .orange{fill:#2E2215;stroke:#E8A05A}
+    .red{fill:#301A18;stroke:#F08A80}
+    .purple{fill:#251C33;stroke:#C3A0F0}
+    .yellow{fill:#2E2812;stroke:#E3C45C}
+    .c-blue{fill:#9CC4F5}.c-green{fill:#7ED3A3}.c-orange{fill:#EDB27A}.c-red{fill:#F4A39B}.c-purple{fill:#D2B8F4}.c-muted{fill:#A9A69F}
+    .ln{stroke:#8D9098}
+    .ln-blue{stroke:#7FB0F0}.ln-green{stroke:#5FC98E}.ln-red{stroke:#F08A80}.ln-orange{stroke:#E8A05A}.ln-purple{stroke:#C3A0F0}
+    .ah{fill:#8D9098}.ah-blue{fill:#7FB0F0}.ah-green{fill:#5FC98E}.ah-red{fill:#F08A80}.ah-orange{fill:#E8A05A}.ah-purple{fill:#C3A0F0}
+  }
+</style>
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-blue" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-red" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-green" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-orange" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-purple" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="880" height="460"/>
+<text class="th" x="24" y="34">시간 기반 보존 — find -mtime 이 실제로 고르는 파일</text>
+<text class="ts" x="24" y="56">archive_logs.sh:28-45 · touch -d 로 나이를 정한 모의 파일로 실행 · 가로축 = 마지막 수정 후 지난 날수</text>
+<text x="24" y="86" class="mono tb">/var/log/agent-app/*.log  (-mtime +7 → 압축·이동)</text>
+<line class="ln ln-orange dash" x1="678.4" y1="152" x2="678.4" y2="224"/>
+<line class="ln ln-red dash" x1="236.8" y1="244" x2="236.8" y2="294"/>
+<line class="ln" x1="56" y1="216" x2="844" y2="216"/>
+<line class="ln" x1="832.0" y1="211" x2="832.0" y2="221"/>
+<text x="832.0" y="237" text-anchor="middle" class="ts">0</text>
+<line class="ln" x1="697.6" y1="211" x2="697.6" y2="221"/>
+<text x="697.6" y="237" text-anchor="middle" class="ts">7</text>
+<line class="ln" x1="678.4" y1="211" x2="678.4" y2="221"/>
+<text x="678.4" y="237" text-anchor="middle" class="ts">8</text>
+<line class="ln" x1="640.0" y1="211" x2="640.0" y2="221"/>
+<text x="640.0" y="237" text-anchor="middle" class="ts">10</text>
+<line class="ln" x1="448.0" y1="211" x2="448.0" y2="221"/>
+<text x="448.0" y="237" text-anchor="middle" class="ts">20</text>
+<line class="ln" x1="256.0" y1="211" x2="256.0" y2="221"/>
+<text x="256.0" y="237" text-anchor="middle" class="ts">30</text>
+<line class="ln" x1="236.8" y1="211" x2="236.8" y2="221"/>
+<text x="236.8" y="237" text-anchor="middle" class="ts">31</text>
+<line class="ln" x1="64.0" y1="211" x2="64.0" y2="221"/>
+<text x="64.0" y="237" text-anchor="middle" class="ts">40</text>
+<text x="64.0" y="256" text-anchor="middle" class="ts">(일 전)</text>
+<text x="832.0" y="256" text-anchor="middle" class="ts">오늘</text>
+<text x="670.4" y="256" text-anchor="end" class="ts c-orange">-mtime +7 의 실제 경계 = 만 8일</text>
+<text x="244.8" y="256" class="ts c-red">-mtime +30 의 실제 경계 = 만 31일</text>
+<line class="ln" x1="174.0" y1="148" x2="640.0" y2="194"/>
+<line class="ln" x1="356.0" y1="148" x2="640.0" y2="174"/>
+<line class="ln" x1="488.0" y1="148" x2="678.4" y2="174"/>
+<line class="ln" x1="632.0" y1="148" x2="688.0" y2="174"/>
+<line class="ln" x1="784.0" y1="148" x2="812.8" y2="174"/>
+<rect class="box" x="64" y="98" width="220" height="50" rx="8"/>
+<text x="174.0" y="119" text-anchor="middle" class="mono">monitor.log.1 (10일)</text>
+<text x="174.0" y="139" text-anchor="middle" class="ts">이름이 *.log 아님 → 대상 아님</text>
+<circle class="box" cx="640.0" cy="200" r="4.5"/>
+<rect class="orange" x="296" y="98" width="120" height="50" rx="8"/>
+<text x="356.0" y="119" text-anchor="middle" class="mono">old_10d.log</text>
+<text x="356.0" y="139" text-anchor="middle" class="ts c-orange tb">10일 → 압축</text>
+<circle class="orange" cx="640.0" cy="180" r="4.5"/>
+<rect class="orange" x="428" y="98" width="120" height="50" rx="8"/>
+<text x="488.0" y="119" text-anchor="middle" class="mono">edge_8d.log</text>
+<text x="488.0" y="139" text-anchor="middle" class="ts c-orange tb">8일 → 압축</text>
+<circle class="orange" cx="678.4" cy="180" r="4.5"/>
+<rect class="green" x="560" y="98" width="144" height="50" rx="8"/>
+<text x="632.0" y="119" text-anchor="middle" class="mono">edge_7d12h.log</text>
+<text x="632.0" y="139" text-anchor="middle" class="ts c-green tb">7.5일 → 유지</text>
+<circle class="green" cx="688.0" cy="180" r="4.5"/>
+<rect class="green" x="716" y="98" width="136" height="50" rx="8"/>
+<text x="784.0" y="119" text-anchor="middle" class="mono">recent_1d.log</text>
+<text x="784.0" y="139" text-anchor="middle" class="ts c-green tb">1일 → 유지</text>
+<circle class="green" cx="812.8" cy="180" r="4.5"/>
+<text x="24" y="382" class="mono tb">↑ /var/log/monitor/agent-app/archive/*.gz  (-mtime +30 → 삭제)</text>
+<line class="ln" x1="64.0" y1="286" x2="88.0" y2="300"/>
+<line class="ln" x1="236.8" y1="286" x2="228.0" y2="300"/>
+<line class="ln" x1="246.4" y1="286" x2="380.0" y2="300"/>
+<line class="ln" x1="448.0" y1="286" x2="532.0" y2="300"/>
+<rect class="red" x="24" y="300" width="128" height="50" rx="8"/>
+<text x="88.0" y="321" text-anchor="middle" class="mono">a_40d.log.gz</text>
+<text x="88.0" y="341" text-anchor="middle" class="ts c-red tb">40일 → 삭제</text>
+<circle class="red" cx="64.0" cy="280" r="4.5"/>
+<rect class="red" x="164" y="300" width="128" height="50" rx="8"/>
+<text x="228.0" y="321" text-anchor="middle" class="mono">a_31d.log.gz</text>
+<text x="228.0" y="341" text-anchor="middle" class="ts c-red tb">31일 → 삭제</text>
+<circle class="red" cx="236.8" cy="280" r="4.5"/>
+<rect class="green" x="304" y="300" width="152" height="50" rx="8"/>
+<text x="380.0" y="321" text-anchor="middle" class="mono">a_30d12h.log.gz</text>
+<text x="380.0" y="341" text-anchor="middle" class="ts c-green tb">30.5일 → 유지</text>
+<circle class="green" cx="246.4" cy="280" r="4.5"/>
+<rect class="green" x="468" y="300" width="128" height="50" rx="8"/>
+<text x="532.0" y="321" text-anchor="middle" class="mono">a_20d.log.gz</text>
+<text x="532.0" y="341" text-anchor="middle" class="ts c-green tb">20일 → 유지</text>
+<circle class="green" cx="448.0" cy="280" r="4.5"/>
+<path class="ln ln-purple" d="M645.0,186 Q755.2,256 825.0,277" marker-end="url(#arrow-purple)"/>
+<path class="ln ln-purple" d="M678.4,185 C672.0,222 772.0,214 829.0,272" marker-end="url(#arrow-purple)"/>
+<circle class="purple" cx="832.0" cy="280" r="4.5"/>
+<line class="ln" x1="832.0" y1="286" x2="832.0" y2="300"/>
+<rect class="purple" x="620" y="300" width="232" height="68" rx="8"/>
+<text x="634" y="321" class="mono">old_10d.log.&lt;시각&gt;.gz</text>
+<text x="634" y="339" class="mono">edge_8d.log.&lt;시각&gt;.gz</text>
+<text x="634" y="359" class="ts c-purple tb">새 .gz 의 시각 = 압축 순간</text>
+<text x="24" y="418" class="mono">[INFO] archive_logs.sh done. compressed=2, deleted=2</text>
+<text x="24" y="440" class="ts">두 번째 실행: compressed=0, deleted=0 — 다시 돌려도 더 할 일이 없다</text>
+</svg>

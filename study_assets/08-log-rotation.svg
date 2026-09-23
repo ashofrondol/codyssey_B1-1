@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="520" viewBox="0 0 880 520" role="img" aria-labelledby="title desc">
+<title id="title">10MB 를 넘는 순간 — 한 칸씩 민다</title>
+<desc id="desc">monitor.sh 는 로그 한 줄을 쓴 뒤 monitor.log 가 10,485,760 바이트 이상이면 회전한다. ① 가장 오래된 .10 을 지우고 ② .9 부터 .1 까지 거꾸로 번호를 하나씩 올린 뒤 ③ monitor.log 를 .1 로 이름만 바꾸고 ④ 빈 monitor.log 를 새로 만든다. 모의 실행에서 11,534,402 바이트 파일이 .1 이 되었고 inode 는 그대로, 새 파일은 새 inode 였다.</desc>
+<style>
+  text{font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Noto Sans CJK KR",sans-serif;font-size:15px;fill:#1D1F23}
+  .bg{fill:#FFFFFF}
+  .ts{font-size:13px;fill:#5B6069}
+  .th{font-size:17px;font-weight:700}
+  .tb{font-weight:700}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,"Noto Sans Mono CJK KR",monospace;font-size:13.5px}
+  .box{fill:#F4F3EF;stroke:#9A9CA3;stroke-width:1.5}
+  .zone{fill:#FAF9F6;stroke:#C9C6BE;stroke-width:1.2;stroke-dasharray:5 4}
+  .blue{fill:#E7EFF9;stroke:#1F5FAD;stroke-width:1.6}
+  .green{fill:#E6F4EC;stroke:#1B7F4B;stroke-width:1.6}
+  .orange{fill:#FCEFE0;stroke:#B25E09;stroke-width:1.6}
+  .red{fill:#FCEBEA;stroke:#B42318;stroke-width:1.6}
+  .purple{fill:#F1EAFB;stroke:#6E3FB0;stroke-width:1.6}
+  .yellow{fill:#FFF3C4;stroke:#A07800;stroke-width:1.6}
+  .c-blue{fill:#1F5FAD}.c-green{fill:#1B7F4B}.c-orange{fill:#B25E09}.c-red{fill:#B42318}.c-purple{fill:#6E3FB0}.c-muted{fill:#5B6069}
+  .ln{stroke:#6B7078;stroke-width:1.6;fill:none}
+  .ln-blue{stroke:#1F5FAD}.ln-green{stroke:#1B7F4B}.ln-red{stroke:#B42318}.ln-orange{stroke:#B25E09}.ln-purple{stroke:#6E3FB0}
+  .dash{stroke-dasharray:6 5}
+  .ah{fill:#6B7078}.ah-blue{fill:#1F5FAD}.ah-green{fill:#1B7F4B}.ah-red{fill:#B42318}.ah-orange{fill:#B25E09}.ah-purple{fill:#6E3FB0}
+  @media (prefers-color-scheme:dark){
+    text{fill:#E8E6E1}
+    .bg{fill:#1A1C20}
+    .ts{fill:#A9A69F}
+    .box{fill:#24262B;stroke:#6B6E76}
+    .zone{fill:#1F2125;stroke:#43464D}
+    .blue{fill:#1B2940;stroke:#7FB0F0}
+    .green{fill:#16281E;stroke:#5FC98E}
+    .orange{fill:#2E2215;stroke:#E8A05A}
+    .red{fill:#301A18;stroke:#F08A80}
+    .purple{fill:#251C33;stroke:#C3A0F0}
+    .yellow{fill:#2E2812;stroke:#E3C45C}
+    .c-blue{fill:#9CC4F5}.c-green{fill:#7ED3A3}.c-orange{fill:#EDB27A}.c-red{fill:#F4A39B}.c-purple{fill:#D2B8F4}.c-muted{fill:#A9A69F}
+    .ln{stroke:#8D9098}
+    .ln-blue{stroke:#7FB0F0}.ln-green{stroke:#5FC98E}.ln-red{stroke:#F08A80}.ln-orange{stroke:#E8A05A}.ln-purple{stroke:#C3A0F0}
+    .ah{fill:#8D9098}.ah-blue{fill:#7FB0F0}.ah-green{fill:#5FC98E}.ah-red{fill:#F08A80}.ah-orange{fill:#E8A05A}.ah-purple{fill:#C3A0F0}
+  }
+</style>
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-blue" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-red" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-green" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-orange" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-purple" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="880" height="520"/>
+<text class="th" x="24" y="34">10MB 를 넘는 순간 — 한 칸씩 민다</text>
+<text class="ts" x="24" y="56">monitor.sh:135-146 · 뒤(.9)에서부터 옮겨야 서로 덮어쓰지 않는다 · old-N = 파일 안 내용 · 숫자는 모의 실행 실측</text>
+<text class="th" x="170" y="90" text-anchor="middle">회전 전</text>
+<text class="th" x="710" y="90" text-anchor="middle">회전 후</text>
+<rect class="orange" x="40" y="104" width="260" height="56" rx="8"/>
+<text x="54" y="126" class="mono tb">monitor.log</text>
+<text x="286" y="126" text-anchor="end" class="mono">11,534,336 B</text>
+<text x="54" y="146" class="ts c-orange">+ 한 줄 66 B 쓴 뒤 검사: ≥ 10,485,760 B</text>
+
+<rect class="purple" x="580" y="104" width="260" height="56" rx="8"/>
+<text x="594" y="126" class="mono tb">monitor.log.1</text>
+<text x="826" y="126" text-anchor="end" class="mono">11,534,402 B</text>
+<text x="594" y="146" class="ts">inode 15611366 그대로 (이름만 바뀜)</text>
+
+<rect class="purple" x="40" y="176" width="260" height="36" rx="8"/>
+<text x="54" y="199" class="mono">monitor.log.1</text>
+<text x="286" y="199" text-anchor="end" class="mono c-muted">old-1</text>
+
+<rect class="purple" x="580" y="176" width="260" height="36" rx="8"/>
+<text x="594" y="199" class="mono">monitor.log.2</text>
+<text x="826" y="199" text-anchor="end" class="mono c-muted">old-1</text>
+
+<rect class="purple" x="40" y="224" width="260" height="36" rx="8"/>
+<text x="54" y="247" class="mono">monitor.log.2</text>
+<text x="286" y="247" text-anchor="end" class="mono c-muted">old-2</text>
+
+<rect class="purple" x="580" y="224" width="260" height="36" rx="8"/>
+<text x="594" y="247" class="mono">monitor.log.3</text>
+<text x="826" y="247" text-anchor="end" class="mono c-muted">old-2</text>
+
+<rect class="purple" x="40" y="304" width="260" height="36" rx="8"/>
+<text x="54" y="327" class="mono">monitor.log.9</text>
+<text x="286" y="327" text-anchor="end" class="mono c-muted">old-9</text>
+
+<rect class="purple" x="580" y="304" width="260" height="36" rx="8"/>
+<text x="594" y="327" class="mono">monitor.log.10</text>
+<text x="826" y="327" text-anchor="end" class="mono c-muted">old-9</text>
+
+<text x="170" y="284" text-anchor="middle" class="tb c-muted">⋮</text>
+<text x="710" y="284" text-anchor="middle" class="tb c-muted">⋮</text>
+<rect class="purple" x="40" y="352" width="260" height="36" rx="8"/>
+<text x="54" y="375" class="mono">monitor.log.10</text>
+<text x="286" y="375" text-anchor="end" class="mono c-muted">old-10</text>
+
+<line class="ln ln-blue" x1="300" y1="132" x2="576" y2="132" marker-end="url(#arrow-blue)"/>
+<rect class="bg" x="344" y="116" width="192" height="32"/>
+<text x="440" y="137" text-anchor="middle" class="mono c-blue">③ mv monitor.log → .1</text>
+<line class="ln ln-blue" x1="300" y1="194" x2="576" y2="194" marker-end="url(#arrow-blue)"/>
+<line class="ln ln-blue" x1="300" y1="242" x2="576" y2="242" marker-end="url(#arrow-blue)"/>
+<line class="ln ln-blue" x1="300" y1="322" x2="576" y2="322" marker-end="url(#arrow-blue)"/>
+<text x="440" y="274" text-anchor="middle" class="mono c-blue">② .9→.10 … .1→.2</text>
+<text x="440" y="292" text-anchor="middle" class="ts c-blue">(i = 9 → 1, 역순)</text>
+<line class="ln ln-red" x1="300" y1="370" x2="436" y2="370" marker-end="url(#arrow-red)"/>
+<rect class="bg" x="326" y="354" width="84" height="32"/>
+<text x="368" y="375" text-anchor="middle" class="mono c-red">① rm .10</text>
+<rect class="red" x="440" y="352" width="120" height="36" rx="8"/>
+<text x="500" y="375" text-anchor="middle" class="tb c-red">old-10 삭제</text>
+<rect class="yellow" x="580" y="408" width="260" height="56" rx="8"/>
+<text x="594" y="430" class="mono tb">monitor.log</text>
+<text x="826" y="430" text-anchor="end" class="mono">0 B</text>
+<text x="594" y="450" class="ts">새 파일 · inode 15611367 (새 번호)</text>
+<line class="ln ln-green" x1="492" y1="436" x2="576" y2="436" marker-end="url(#arrow-green)"/>
+<text x="480" y="432" text-anchor="end" class="mono c-green">④ : &gt; monitor.log</text>
+<text x="480" y="452" text-anchor="end" class="ts">빈 파일을 새로 만든다</text>
+<text x="24" y="500" class="ts">최대 = 현재 1 + 보관 10 ≈ 110 MB  ·  한 줄 66 B × 매분 → 10 MB 까지 약 110일</text>
+</svg>

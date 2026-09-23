@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="456" viewBox="0 0 880 456" role="img" aria-labelledby="title desc">
+<title id="title">환경 변수는 누가 읽나 — 셸 종류별 시작 파일과 cron</title>
+<desc id="desc">세 가지 실행 방식이 AGENT_* 환경 변수를 받는지 비교한다. sudo -iu agent-admin 으로 들어간 대화형 로그인 셸은 .bashrc 첫머리 가드를 통과해 끝의 export 5줄을 실행하지만, bash -lc 같은 비대화형 셸은 가드에서 return 해 AGENT_HOME 이 비어 있다. cron 은 .bashrc 를 읽지 않으므로 crontab 줄이 변수를 명령 앞에 직접 적고, monitor.sh 는 기본값을 한 번 더 갖는다.</desc>
+<style>
+  text{font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Noto Sans CJK KR",sans-serif;font-size:15px;fill:#1D1F23}
+  .bg{fill:#FFFFFF}
+  .ts{font-size:13px;fill:#5B6069}
+  .th{font-size:17px;font-weight:700}
+  .tb{font-weight:700}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,"Noto Sans Mono CJK KR",monospace;font-size:13.5px}
+  .box{fill:#F4F3EF;stroke:#9A9CA3;stroke-width:1.5}
+  .zone{fill:#FAF9F6;stroke:#C9C6BE;stroke-width:1.2;stroke-dasharray:5 4}
+  .blue{fill:#E7EFF9;stroke:#1F5FAD;stroke-width:1.6}
+  .green{fill:#E6F4EC;stroke:#1B7F4B;stroke-width:1.6}
+  .orange{fill:#FCEFE0;stroke:#B25E09;stroke-width:1.6}
+  .red{fill:#FCEBEA;stroke:#B42318;stroke-width:1.6}
+  .purple{fill:#F1EAFB;stroke:#6E3FB0;stroke-width:1.6}
+  .yellow{fill:#FFF3C4;stroke:#A07800;stroke-width:1.6}
+  .c-blue{fill:#1F5FAD}.c-green{fill:#1B7F4B}.c-orange{fill:#B25E09}.c-red{fill:#B42318}.c-purple{fill:#6E3FB0}.c-muted{fill:#5B6069}
+  .ln{stroke:#6B7078;stroke-width:1.6;fill:none}
+  .ln-blue{stroke:#1F5FAD}.ln-green{stroke:#1B7F4B}.ln-red{stroke:#B42318}.ln-orange{stroke:#B25E09}.ln-purple{stroke:#6E3FB0}
+  .dash{stroke-dasharray:6 5}
+  .ah{fill:#6B7078}.ah-blue{fill:#1F5FAD}.ah-green{fill:#1B7F4B}.ah-red{fill:#B42318}.ah-orange{fill:#B25E09}.ah-purple{fill:#6E3FB0}
+  @media (prefers-color-scheme:dark){
+    text{fill:#E8E6E1}
+    .bg{fill:#1A1C20}
+    .ts{fill:#A9A69F}
+    .box{fill:#24262B;stroke:#6B6E76}
+    .zone{fill:#1F2125;stroke:#43464D}
+    .blue{fill:#1B2940;stroke:#7FB0F0}
+    .green{fill:#16281E;stroke:#5FC98E}
+    .orange{fill:#2E2215;stroke:#E8A05A}
+    .red{fill:#301A18;stroke:#F08A80}
+    .purple{fill:#251C33;stroke:#C3A0F0}
+    .yellow{fill:#2E2812;stroke:#E3C45C}
+    .c-blue{fill:#9CC4F5}.c-green{fill:#7ED3A3}.c-orange{fill:#EDB27A}.c-red{fill:#F4A39B}.c-purple{fill:#D2B8F4}.c-muted{fill:#A9A69F}
+    .ln{stroke:#8D9098}
+    .ln-blue{stroke:#7FB0F0}.ln-green{stroke:#5FC98E}.ln-red{stroke:#F08A80}.ln-orange{stroke:#E8A05A}.ln-purple{stroke:#C3A0F0}
+    .ah{fill:#8D9098}.ah-blue{fill:#7FB0F0}.ah-green{fill:#5FC98E}.ah-red{fill:#F08A80}.ah-orange{fill:#E8A05A}.ah-purple{fill:#C3A0F0}
+  }
+</style>
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-blue" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-red" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-green" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-orange" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-purple" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="880" height="456"/>
+<text class="th" x="24" y="34">환경 변수는 누가 읽나 — 셸 종류별 시작 파일과 cron</text>
+<text class="ts" x="24" y="56">초록 = 변수를 받음 · 빨강 = 못 받음 · 점선 = 실행되지 않음</text>
+
+<!-- 열 제목 -->
+<text class="ts" x="104" y="86" text-anchor="middle">어떻게 시작했나</text>
+<text class="ts" x="264" y="86" text-anchor="middle">시작 파일</text>
+<text class="ts" x="414" y="86" text-anchor="middle">.bashrc 첫머리</text>
+<text class="ts" x="626" y="86" text-anchor="middle">.bashrc 끝 (src/05 가 붙임)</text>
+<text class="ts" x="790" y="86" text-anchor="middle">결과</text>
+
+<!-- 가드 (줄1·줄2 공통) -->
+<rect class="yellow" x="344" y="100" width="140" height="160" rx="10"/>
+<text class="tb" x="414" y="124" text-anchor="middle">가드</text>
+<text class="ts" x="414" y="143" text-anchor="middle">Ubuntu 기본</text>
+<text class="mono" x="360" y="170">case $- in</text>
+<text class="mono c-green" x="376" y="190">*i*) ;;</text>
+<text class="mono c-red" x="376" y="210">*) return;;</text>
+<text class="mono" x="360" y="230">esac</text>
+<text class="ts" x="414" y="250" text-anchor="middle">$- 에 i = 대화형</text>
+
+<!-- 줄 1: 대화형 로그인 셸 -->
+<rect class="box" x="24" y="100" width="160" height="72" rx="10"/>
+<text class="mono" x="104" y="121" text-anchor="middle">sudo -iu</text>
+<text class="mono" x="104" y="140" text-anchor="middle">agent-admin</text>
+<text class="ts" x="104" y="161" text-anchor="middle">대화형 로그인 셸</text>
+<line class="ln" x1="184" y1="114" x2="204" y2="114" marker-end="url(#arrow)"/>
+<rect class="box" x="208" y="100" width="112" height="28" rx="8"/>
+<text class="mono" x="264" y="119" text-anchor="middle">~/.profile</text>
+<line class="ln" x1="264" y1="128" x2="264" y2="140" marker-end="url(#arrow)"/>
+<rect class="box" x="208" y="144" width="112" height="28" rx="8"/>
+<text class="mono" x="264" y="163" text-anchor="middle">~/.bashrc</text>
+<line class="ln" x1="320" y1="158" x2="340" y2="158" marker-end="url(#arrow)"/>
+<line class="ln ln-green" x1="484" y1="136" x2="548" y2="136" marker-end="url(#arrow-green)"/>
+<text class="ts c-green" x="516" y="126" text-anchor="middle">i 있음</text>
+<text class="ts c-green" x="516" y="156" text-anchor="middle">→ 통과</text>
+<rect class="green" x="552" y="100" width="148" height="72" rx="10"/>
+<text class="mono c-green" x="626" y="131" text-anchor="middle">export AGENT_*</text>
+<text class="ts" x="626" y="153" text-anchor="middle">5줄 실행됨</text>
+<line class="ln ln-green" x1="700" y1="136" x2="720" y2="136" marker-end="url(#arrow-green)"/>
+<rect class="green" x="724" y="100" width="132" height="72" rx="10"/>
+<text class="mono tb c-green" x="790" y="131" text-anchor="middle">AGENT_HOME</text>
+<text class="ts" x="790" y="153" text-anchor="middle">설정됨 ✓</text>
+
+<!-- 줄 2: 비대화형 로그인 셸 -->
+<rect class="box" x="24" y="188" width="160" height="72" rx="10"/>
+<text class="mono" x="104" y="209" text-anchor="middle">bash -lc '명령'</text>
+<text class="ts" x="104" y="229" text-anchor="middle">비대화형 로그인 셸</text>
+<text class="ts" x="104" y="249" text-anchor="middle">src/05:49</text>
+<line class="ln" x1="184" y1="202" x2="204" y2="202" marker-end="url(#arrow)"/>
+<rect class="box" x="208" y="188" width="112" height="28" rx="8"/>
+<text class="mono" x="264" y="207" text-anchor="middle">~/.profile</text>
+<line class="ln" x1="264" y1="216" x2="264" y2="228" marker-end="url(#arrow)"/>
+<rect class="box" x="208" y="232" width="112" height="28" rx="8"/>
+<text class="mono" x="264" y="251" text-anchor="middle">~/.bashrc</text>
+<line class="ln" x1="320" y1="246" x2="340" y2="246" marker-end="url(#arrow)"/>
+<line class="ln ln-red" x1="484" y1="224" x2="506" y2="224"/>
+<line class="ln ln-red" x1="507" y1="218" x2="519" y2="230"/>
+<line class="ln ln-red" x1="519" y1="218" x2="507" y2="230"/>
+<line class="ln dash" x1="522" y1="224" x2="548" y2="224" marker-end="url(#arrow)"/>
+<text class="ts c-red" x="516" y="210" text-anchor="middle">i 없음</text>
+<text class="ts c-red" x="516" y="248" text-anchor="middle">→ return</text>
+<rect class="box dash" x="552" y="188" width="148" height="72" rx="10"/>
+<text class="mono c-muted" x="626" y="219" text-anchor="middle">export AGENT_*</text>
+<text class="ts" x="626" y="241" text-anchor="middle">도달 못함</text>
+<line class="ln dash" x1="700" y1="224" x2="720" y2="224" marker-end="url(#arrow)"/>
+<rect class="red" x="724" y="188" width="132" height="72" rx="10"/>
+<text class="mono c-red" x="790" y="219" text-anchor="middle">AGENT_HOME=[]</text>
+<text class="ts" x="790" y="241" text-anchor="middle">실측 grep rc=1</text>
+
+<!-- 줄 3: cron -->
+<rect class="box" x="24" y="288" width="160" height="72" rx="10"/>
+<text class="tb" x="104" y="309" text-anchor="middle">cron (매분)</text>
+<text class="mono" x="104" y="329" text-anchor="middle">/bin/sh -c "…"</text>
+<text class="ts" x="104" y="349" text-anchor="middle">PATH=/usr/bin:/bin</text>
+<line class="ln" x1="184" y1="324" x2="516" y2="324" marker-end="url(#arrow)"/>
+<rect class="bg" x="252" y="306" width="200" height="30"/>
+<text class="ts" x="352" y="327" text-anchor="middle">.bashrc 안 읽음 (가드까지 안 옴)</text>
+<rect class="green" x="520" y="288" width="336" height="72" rx="10"/>
+<text class="mono c-green" x="688" y="310" text-anchor="middle">AGENT_HOME=… AGENT_PORT=15034</text>
+<text class="mono c-green" x="688" y="330" text-anchor="middle">AGENT_LOG_DIR=… …/monitor.sh</text>
+<text class="ts" x="688" y="350" text-anchor="middle">src/07:25 · crontab 줄에서 명령 앞에 직접</text>
+<line class="ln ln-green" x1="688" y1="360" x2="688" y2="378" marker-end="url(#arrow-green)"/>
+<rect class="green" x="520" y="382" width="336" height="52" rx="10"/>
+<text class="mono c-green" x="688" y="404" text-anchor="middle">${AGENT_LOG_DIR:-/var/log/agent-app}</text>
+<text class="ts" x="688" y="424" text-anchor="middle">monitor.sh:14 기본값 = 2차 안전망</text>
+<text class="ts" x="504" y="412" text-anchor="end">그래도 변수가 비면 기본값으로</text>
+
+</svg>

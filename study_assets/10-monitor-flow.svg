@@ -1,0 +1,162 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="912" viewBox="0 0 880 912" role="img" aria-labelledby="title desc">
+<title id="title">monitor.sh 한 번의 흐름 — 멈추는 곳과 경고만 하는 곳</title>
+<desc id="desc">cron 이 매분 monitor.sh 를 실행하면 위에서 아래로 차례로 점검한다. 앱 프로세스가 없거나 포트 15034 가 닫혔거나 로그 폴더에 쓸 수 없으면 exit 1 로 멈춰 로그가 남지 않고, 방화벽 비활성과 임계값 초과는 [WARNING] 만 찍고 계속 진행해 monitor.log 에 한 줄을 남긴 뒤 exit 0 으로 끝난다. 파일이 10 MB 이상이면 기록 직후 회전한다.</desc>
+<style>
+  text{font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Noto Sans CJK KR",sans-serif;font-size:15px;fill:#1D1F23}
+  .bg{fill:#FFFFFF}
+  .ts{font-size:13px;fill:#5B6069}
+  .th{font-size:17px;font-weight:700}
+  .tb{font-weight:700}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,"Noto Sans Mono CJK KR",monospace;font-size:13.5px}
+  .box{fill:#F4F3EF;stroke:#9A9CA3;stroke-width:1.5}
+  .zone{fill:#FAF9F6;stroke:#C9C6BE;stroke-width:1.2;stroke-dasharray:5 4}
+  .blue{fill:#E7EFF9;stroke:#1F5FAD;stroke-width:1.6}
+  .green{fill:#E6F4EC;stroke:#1B7F4B;stroke-width:1.6}
+  .orange{fill:#FCEFE0;stroke:#B25E09;stroke-width:1.6}
+  .red{fill:#FCEBEA;stroke:#B42318;stroke-width:1.6}
+  .purple{fill:#F1EAFB;stroke:#6E3FB0;stroke-width:1.6}
+  .yellow{fill:#FFF3C4;stroke:#A07800;stroke-width:1.6}
+  .c-blue{fill:#1F5FAD}.c-green{fill:#1B7F4B}.c-orange{fill:#B25E09}.c-red{fill:#B42318}.c-purple{fill:#6E3FB0}.c-muted{fill:#5B6069}
+  .ln{stroke:#6B7078;stroke-width:1.6;fill:none}
+  .ln-blue{stroke:#1F5FAD}.ln-green{stroke:#1B7F4B}.ln-red{stroke:#B42318}.ln-orange{stroke:#B25E09}.ln-purple{stroke:#6E3FB0}
+  .dash{stroke-dasharray:6 5}
+  .ah{fill:#6B7078}.ah-blue{fill:#1F5FAD}.ah-green{fill:#1B7F4B}.ah-red{fill:#B42318}.ah-orange{fill:#B25E09}.ah-purple{fill:#6E3FB0}
+  @media (prefers-color-scheme:dark){
+    text{fill:#E8E6E1}
+    .bg{fill:#1A1C20}
+    .ts{fill:#A9A69F}
+    .box{fill:#24262B;stroke:#6B6E76}
+    .zone{fill:#1F2125;stroke:#43464D}
+    .blue{fill:#1B2940;stroke:#7FB0F0}
+    .green{fill:#16281E;stroke:#5FC98E}
+    .orange{fill:#2E2215;stroke:#E8A05A}
+    .red{fill:#301A18;stroke:#F08A80}
+    .purple{fill:#251C33;stroke:#C3A0F0}
+    .yellow{fill:#2E2812;stroke:#E3C45C}
+    .c-blue{fill:#9CC4F5}.c-green{fill:#7ED3A3}.c-orange{fill:#EDB27A}.c-red{fill:#F4A39B}.c-purple{fill:#D2B8F4}.c-muted{fill:#A9A69F}
+    .ln{stroke:#8D9098}
+    .ln-blue{stroke:#7FB0F0}.ln-green{stroke:#5FC98E}.ln-red{stroke:#F08A80}.ln-orange{stroke:#E8A05A}.ln-purple{stroke:#C3A0F0}
+    .ah{fill:#8D9098}.ah-blue{fill:#7FB0F0}.ah-green{fill:#5FC98E}.ah-red{fill:#F08A80}.ah-orange{fill:#E8A05A}.ah-purple{fill:#C3A0F0}
+  }
+</style>
+<defs>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-blue" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-red" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-orange" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-purple" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="880" height="912"/>
+<text class="th" x="40" y="38">monitor.sh 한 번의 흐름 — 멈추는 곳과 경고만 하는 곳</text>
+<text class="ts" x="40" y="62">위에서 아래로 읽는다 · 왼쪽 파란 상자 = 차례로 하는 점검 · 오른쪽 = 점검에 걸렸을 때 · 숫자 = monitor.sh 줄 번호</text>
+<line class="ln ln-blue" x1="250" y1="120" x2="250" y2="146" marker-end="url(#arrow-blue)"/>
+<line class="ln ln-blue" x1="250" y1="186" x2="250" y2="212" marker-end="url(#arrow-blue)"/>
+<line class="ln ln-blue" x1="250" y1="252" x2="250" y2="278" marker-end="url(#arrow-blue)"/>
+<line class="ln ln-blue" x1="250" y1="318" x2="250" y2="344" marker-end="url(#arrow-blue)"/>
+<line class="ln ln-blue" x1="250" y1="384" x2="250" y2="410" marker-end="url(#arrow-blue)"/>
+<line class="ln ln-blue" x1="250" y1="450" x2="250" y2="476" marker-end="url(#arrow-blue)"/>
+<line class="ln ln-blue" x1="250" y1="516" x2="250" y2="542" marker-end="url(#arrow-blue)"/>
+<line class="ln ln-blue" x1="250" y1="582" x2="250" y2="608" marker-end="url(#arrow-blue)"/>
+<line class="ln ln-blue" x1="250" y1="648" x2="250" y2="674" marker-end="url(#arrow-blue)"/>
+<line class="ln ln-blue" x1="250" y1="714" x2="250" y2="740" marker-end="url(#arrow-blue)"/>
+<line class="ln ln-red" x1="460" y1="234" x2="536" y2="234" marker-end="url(#arrow-red)"/>
+<line class="ln ln-red" x1="460" y1="300" x2="536" y2="300" marker-end="url(#arrow-red)"/>
+<line class="ln ln-orange" x1="460" y1="366" x2="536" y2="366" marker-end="url(#arrow-orange)"/>
+<path class="ln ln-orange" d="M690,384 L690,399 L255,399" marker-end="url(#arrow-orange)"/>
+<line class="ln ln-orange" x1="460" y1="498" x2="536" y2="498" marker-end="url(#arrow-orange)"/>
+<path class="ln ln-orange" d="M690,516 L690,531 L255,531" marker-end="url(#arrow-orange)"/>
+<line class="ln ln-red" x1="460" y1="564" x2="536" y2="564" marker-end="url(#arrow-red)"/>
+<line class="ln ln-purple" x1="460" y1="696" x2="536" y2="696" marker-end="url(#arrow-purple)"/>
+<path class="ln ln-purple" d="M690,714 L690,729 L255,729" marker-end="url(#arrow-purple)"/>
+<rect class="bg" x="479" y="220" width="42" height="27"/>
+<text class="ts c-red" x="500" y="238" text-anchor="middle">없음</text>
+<text class="ts c-blue" x="240" y="272" text-anchor="end">있음</text>
+<rect class="bg" x="479" y="286" width="42" height="27"/>
+<text class="ts c-red" x="500" y="304" text-anchor="middle">닫힘</text>
+<text class="ts c-blue" x="240" y="338" text-anchor="end">열림</text>
+<rect class="bg" x="472" y="352" width="55" height="27"/>
+<text class="ts c-orange" x="500" y="370" text-anchor="middle">아니오</text>
+<text class="ts c-blue" x="240" y="404" text-anchor="end">예</text>
+<rect class="bg" x="455" y="385" width="91" height="28"/>
+<text class="ts c-orange" x="500" y="404" text-anchor="middle">경고 후 계속</text>
+<rect class="bg" x="479" y="484" width="42" height="27"/>
+<text class="ts c-orange" x="500" y="502" text-anchor="middle">초과</text>
+<text class="ts c-blue" x="240" y="536" text-anchor="end">아니오</text>
+<rect class="bg" x="455" y="517" width="91" height="28"/>
+<text class="ts c-orange" x="500" y="536" text-anchor="middle">경고 후 계속</text>
+<rect class="bg" x="472" y="550" width="55" height="27"/>
+<text class="ts c-red" x="500" y="568" text-anchor="middle">아니오</text>
+<text class="ts c-blue" x="240" y="602" text-anchor="end">예</text>
+<rect class="bg" x="486" y="682" width="29" height="27"/>
+<text class="ts c-purple" x="500" y="700" text-anchor="middle">예</text>
+<text class="ts c-blue" x="240" y="734" text-anchor="end">아니오</text>
+<rect class="bg" x="455" y="715" width="91" height="28"/>
+<text class="ts c-purple" x="500" y="734" text-anchor="middle">회전 후 계속</text>
+<rect class="box" x="40" y="84" width="420" height="36" rx="8"/>
+<text class="tb" x="250" y="107" text-anchor="middle">시작: cron 이 매분 실행 (agent-admin)</text>
+<rect class="blue" x="40" y="150" width="420" height="36" rx="8"/>
+<text class="mono c-blue" x="54" y="173">:26</text>
+<text class="tb" x="136" y="173">시작 시각 기록</text>
+<text class="mono" x="257" y="173">TS=$(date ...)</text>
+<rect class="blue" x="40" y="216" width="420" height="36" rx="8"/>
+<text class="mono c-blue" x="54" y="239">:39</text>
+<text class="tb" x="136" y="239">앱 살아 있나?</text>
+<text class="mono" x="250" y="239">pgrep -x agent-app</text>
+<rect class="blue" x="40" y="282" width="420" height="36" rx="8"/>
+<text class="mono c-blue" x="54" y="305">:48-52</text>
+<text class="tb" x="136" y="305">포트 열려 있나?</text>
+<text class="mono" x="265" y="305">ss -tlnH  :15034</text>
+<rect class="blue" x="40" y="348" width="420" height="36" rx="8"/>
+<text class="mono c-blue" x="54" y="371">:71-77</text>
+<text class="tb" x="136" y="371">방화벽 켜져 있나?</text>
+<text class="mono" x="280" y="371">ufw · firewalld</text>
+<rect class="blue" x="40" y="414" width="420" height="36" rx="8"/>
+<text class="mono c-blue" x="54" y="437">:86-96</text>
+<text class="tb" x="136" y="437">사용량 재기</text>
+<text class="mono" x="238" y="437">CPU · MEM · DISK</text>
+<rect class="blue" x="40" y="480" width="420" height="36" rx="8"/>
+<text class="mono c-blue" x="54" y="503">:107-112</text>
+<text class="tb" x="136" y="503">기준 넘었나?</text>
+<text class="mono" x="246" y="503">CPU&gt;20 MEM&gt;10 DISK&gt;80</text>
+<rect class="blue" x="40" y="546" width="420" height="36" rx="8"/>
+<text class="mono c-blue" x="54" y="569">:117-124</text>
+<text class="tb" x="136" y="569">로그 폴더 있고 쓸 수 있나?</text>
+<rect class="purple" x="40" y="612" width="420" height="36" rx="8"/>
+<text class="mono c-purple" x="54" y="635">:126-127</text>
+<text class="tb" x="136" y="635">로그 한 줄 이어쓰기</text>
+<text class="mono" x="292" y="635">&gt;&gt; monitor.log</text>
+<rect class="blue" x="40" y="678" width="420" height="36" rx="8"/>
+<text class="mono c-blue" x="54" y="701">:135-137</text>
+<text class="tb" x="136" y="701">파일이 10 MB 이상?</text>
+<rect class="green" x="40" y="744" width="420" height="36" rx="8"/>
+<text class="mono c-green" x="54" y="767">:148</text>
+<text class="tb" x="136" y="767">정상 종료</text>
+<text class="mono" x="222" y="767">exit 0</text>
+<rect class="red" x="540" y="216" width="300" height="36" rx="8"/>
+<text class="mono c-red" x="554" y="239">[FAIL] exit 1</text>
+<text class="ts" x="671" y="239">멈춤 · 로그 안 남음</text>
+<rect class="red" x="540" y="282" width="300" height="36" rx="8"/>
+<text class="mono c-red" x="554" y="305">[FAIL] exit 1</text>
+<text class="ts" x="671" y="305">멈춤 · 로그 안 남음</text>
+<rect class="orange" x="540" y="348" width="300" height="36" rx="8"/>
+<text class="mono c-orange" x="690" y="371" text-anchor="middle">[WARNING] Firewall is not active.</text>
+<rect class="orange" x="540" y="480" width="300" height="36" rx="8"/>
+<text class="mono c-orange" x="690" y="503" text-anchor="middle">[WARNING] ... threshold exceeded</text>
+<rect class="red" x="540" y="546" width="300" height="36" rx="8"/>
+<text class="mono c-red" x="554" y="569">[ERROR] exit 1</text>
+<text class="ts" x="679" y="569">멈춤 · 로그 안 남음</text>
+<rect class="purple" x="540" y="678" width="300" height="36" rx="8"/>
+<text class="c-purple" x="690" y="701" text-anchor="middle">회전: .1 ~ .10 까지 보관 (그림 8)</text>
+<text class="ts" x="40" y="814">끝까지 오면 monitor.log 에 이런 한 줄이 쌓인다 (실행 예시):</text>
+<rect class="purple" x="40" y="824" width="568" height="34" rx="6"/>
+<text class="mono" x="54" y="846">[2026-09-23 09:47:00] PID:36053 CPU:45.5% MEM:32.0% DISK_USED:25%</text>
+<text class="ts c-orange" x="624" y="839">CPU·MEM 이 기준을 넘어</text>
+<text class="ts c-orange" x="624" y="857">경고가 떴어도 기록은 됨</text>
+<rect class="red" x="40" y="886" width="16" height="16" rx="3"/>
+<text class="ts" x="64" y="899">빨강 = exit 1 (장애, 멈춤)</text>
+<rect class="orange" x="259.85" y="886" width="16" height="16" rx="3"/>
+<text class="ts" x="283.85" y="899">주황 = 경고만 하고 계속</text>
+<rect class="green" x="457.6" y="886" width="16" height="16" rx="3"/>
+<text class="ts" x="481.6" y="899">초록 = 정상 종료</text>
+<rect class="purple" x="612.45" y="886" width="16" height="16" rx="3"/>
+<text class="ts" x="636.45" y="899">보라 = 파일 기록</text>
+</svg>

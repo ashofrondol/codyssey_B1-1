@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="680" viewBox="0 0 880 680" role="img" aria-labelledby="title desc">
+<title id="title">서버 한 대에 세운 것 — 전체 구조</title>
+<desc id="desc">바깥의 관리자 PC 는 UFW 방화벽이 허용한 20022 포트로 sshd 에 들어오고, 인터넷 봇의 22 포트 접속은 방화벽에서 막힌다. 서버 안에는 계정 3개·그룹 2개, 권한이 나뉜 폴더들, 15034 포트의 agent-app 이 있고, cron 이 매분 monitor.sh 를 실행해 앱을 점검한 결과를 monitor.log 에 한 줄씩 쌓는다. 동그라미 숫자는 그 부분을 만든 src/01~07 스크립트 번호이고, 점선은 보너스(report.sh, archive_logs.sh)다. archive_logs.sh 는 감시 기록 폴더에서 7일 지난 *.log 를 가져가 압축해 아카이브 폴더로 옮긴다.</desc>
+<style>
+  text{font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Noto Sans CJK KR",sans-serif;font-size:15px;fill:#1D1F23}
+  .bg{fill:#FFFFFF}
+  .ts{font-size:13px;fill:#5B6069}
+  .th{font-size:17px;font-weight:700}
+  .tb{font-weight:700}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,"Noto Sans Mono CJK KR",monospace;font-size:13.5px}
+  .box{fill:#F4F3EF;stroke:#9A9CA3;stroke-width:1.5}
+  .zone{fill:#FAF9F6;stroke:#C9C6BE;stroke-width:1.2;stroke-dasharray:5 4}
+  .blue{fill:#E7EFF9;stroke:#1F5FAD;stroke-width:1.6}
+  .green{fill:#E6F4EC;stroke:#1B7F4B;stroke-width:1.6}
+  .orange{fill:#FCEFE0;stroke:#B25E09;stroke-width:1.6}
+  .red{fill:#FCEBEA;stroke:#B42318;stroke-width:1.6}
+  .purple{fill:#F1EAFB;stroke:#6E3FB0;stroke-width:1.6}
+  .yellow{fill:#FFF3C4;stroke:#A07800;stroke-width:1.6}
+  .c-blue{fill:#1F5FAD}.c-green{fill:#1B7F4B}.c-orange{fill:#B25E09}.c-red{fill:#B42318}.c-purple{fill:#6E3FB0}.c-muted{fill:#5B6069}
+  .ln{stroke:#6B7078;stroke-width:1.6;fill:none}
+  .ln-blue{stroke:#1F5FAD}.ln-green{stroke:#1B7F4B}.ln-red{stroke:#B42318}.ln-orange{stroke:#B25E09}.ln-purple{stroke:#6E3FB0}
+  .dash{stroke-dasharray:6 5}
+  .ah{fill:#6B7078}.ah-blue{fill:#1F5FAD}.ah-green{fill:#1B7F4B}.ah-red{fill:#B42318}.ah-orange{fill:#B25E09}.ah-purple{fill:#6E3FB0}
+  @media (prefers-color-scheme:dark){
+    text{fill:#E8E6E1}
+    .bg{fill:#1A1C20}
+    .ts{fill:#A9A69F}
+    .box{fill:#24262B;stroke:#6B6E76}
+    .zone{fill:#1F2125;stroke:#43464D}
+    .blue{fill:#1B2940;stroke:#7FB0F0}
+    .green{fill:#16281E;stroke:#5FC98E}
+    .orange{fill:#2E2215;stroke:#E8A05A}
+    .red{fill:#301A18;stroke:#F08A80}
+    .purple{fill:#251C33;stroke:#C3A0F0}
+    .yellow{fill:#2E2812;stroke:#E3C45C}
+    .c-blue{fill:#9CC4F5}.c-green{fill:#7ED3A3}.c-orange{fill:#EDB27A}.c-red{fill:#F4A39B}.c-purple{fill:#D2B8F4}.c-muted{fill:#A9A69F}
+    .ln{stroke:#8D9098}
+    .ln-blue{stroke:#7FB0F0}.ln-green{stroke:#5FC98E}.ln-red{stroke:#F08A80}.ln-orange{stroke:#E8A05A}.ln-purple{stroke:#C3A0F0}
+    .ah{fill:#8D9098}.ah-blue{fill:#7FB0F0}.ah-green{fill:#5FC98E}.ah-red{fill:#F08A80}.ah-orange{fill:#E8A05A}.ah-purple{fill:#C3A0F0}
+  }
+</style>
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-blue" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-red" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-green" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-orange" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-purple" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="880" height="680"/>
+<text x="24" y="34" class="th">서버 한 대에 세운 것 — 전체 구조</text>
+<rect class="zone" x="136" y="50" width="720" height="582" rx="14"/>
+<text x="152" y="76" class="tb">Ubuntu 24.04 서버 (OrbStack 머신)</text>
+<rect class="box" x="24" y="112" width="96" height="48" rx="10"/>
+<text x="72" y="141" text-anchor="middle" class="tb">관리자 PC</text>
+<rect class="box" x="24" y="184" width="96" height="48" rx="10"/>
+<text x="72" y="213" text-anchor="middle" class="tb c-red">인터넷 봇</text>
+<line class="ln ln-blue" x1="120" y1="136" x2="204" y2="136" marker-end="url(#arrow-blue)"/>
+<text x="166" y="128" text-anchor="middle" class="mono c-blue">:20022</text>
+<line class="ln ln-red dash" x1="120" y1="208" x2="180" y2="208"/>
+<text x="154" y="200" text-anchor="middle" class="mono c-red">:22</text>
+<path class="ln ln-red" style="stroke-width:2.6" d="M184,201 L198,215 M198,201 L184,215"/>
+<text x="191" y="234" text-anchor="middle" class="ts c-red tb">차단</text>
+<rect class="green" x="208" y="92" width="150" height="216" rx="10"/>
+<text x="283" y="114" text-anchor="middle" class="tb c-green">② UFW 방화벽</text>
+<text x="283" y="141" text-anchor="middle" class="mono">allow 20022/tcp</text>
+<text x="283" y="204" text-anchor="middle" class="ts">기본: 들어오는</text>
+<text x="283" y="222" text-anchor="middle" class="ts">연결은 거부</text>
+<text x="283" y="265" text-anchor="middle" class="mono">allow 15034/tcp</text>
+<line class="ln ln-blue" x1="358" y1="136" x2="378" y2="136" marker-end="url(#arrow-blue)"/>
+<rect class="blue" x="382" y="100" width="164" height="72" rx="10"/>
+<text x="464" y="122" text-anchor="middle" class="tb c-blue">① sshd</text>
+<text x="464" y="143" text-anchor="middle" class="mono">Port 20022</text>
+<text x="464" y="162" text-anchor="middle" class="mono">PermitRootLogin no</text>
+<line class="ln ln-blue" x1="358" y1="260" x2="378" y2="260" marker-end="url(#arrow-blue)"/>
+<rect class="blue" x="382" y="212" width="164" height="96" rx="10"/>
+<text x="464" y="234" text-anchor="middle" class="tb c-blue">agent-app</text>
+<text x="464" y="254" text-anchor="middle" class="mono">0.0.0.0:15034</text>
+<text x="464" y="275" text-anchor="middle" class="ts">agent-admin 이 실행</text>
+<text x="464" y="294" text-anchor="middle" class="ts">(⑤ 환경변수·키)</text>
+<rect class="box" x="640" y="92" width="200" height="60" rx="10"/>
+<text x="740" y="116" text-anchor="middle" class="tb">⑦ cron (agent-admin)</text>
+<text x="740" y="139" text-anchor="middle" class="mono">* * * * *</text>
+<line class="ln ln-blue" x1="740" y1="152" x2="740" y2="208" marker-end="url(#arrow-blue)"/>
+<text x="756" y="185" class="ts c-blue">매분</text>
+<rect class="box" x="640" y="212" width="200" height="96" rx="10"/>
+<text x="740" y="256" text-anchor="middle" class="mono tb">monitor.sh</text>
+<text x="740" y="277" text-anchor="middle" class="ts">앱 상태 점검</text>
+<line class="ln ln-blue" x1="640" y1="236" x2="550" y2="236" marker-end="url(#arrow-blue)"/>
+<text x="595" y="229" text-anchor="middle" class="mono c-blue">pgrep -x</text>
+<line class="ln ln-blue" x1="640" y1="284" x2="550" y2="284" marker-end="url(#arrow-blue)"/>
+<text x="595" y="277" text-anchor="middle" class="mono c-blue">ss -tlnH</text>
+<rect class="box" x="152" y="328" width="464" height="64" rx="10"/>
+<text x="168" y="354" class="tb">③ 계정</text>
+<text x="236" y="354" class="mono">agent-admin · agent-dev · agent-test</text>
+<text x="168" y="380" class="tb">그룹</text>
+<text x="236" y="380" class="mono">agent-common(3명) · agent-core(admin, dev)</text>
+<text x="152" y="426" class="mono c-muted">$AGENT_HOME = /home/agent-admin/agent-app</text>
+<rect class="purple" x="152" y="440" width="150" height="76" rx="10"/>
+<text x="227" y="462" text-anchor="middle" class="mono c-purple">④ upload_files/</text>
+<text x="227" y="483" text-anchor="middle" class="ts">agent-common R/W</text>
+<rect class="purple" x="314" y="440" width="138" height="76" rx="10"/>
+<text x="383" y="462" text-anchor="middle" class="mono c-purple">④ api_keys/</text>
+<text x="383" y="482" text-anchor="middle" class="mono c-purple">t_secret.key ⑤</text>
+<text x="383" y="503" text-anchor="middle" class="ts">agent-core 만</text>
+<rect class="purple" x="464" y="440" width="152" height="76" rx="10"/>
+<text x="540" y="462" text-anchor="middle" class="mono c-purple">⑥ bin/monitor.sh</text>
+<text x="540" y="483" text-anchor="middle" class="ts">agent-dev:agent-core</text>
+<text x="540" y="503" text-anchor="middle" class="ts">750 (rwxr-x---)</text>
+<line class="ln ln-purple" x1="740" y1="308" x2="740" y2="412" marker-end="url(#arrow-purple)"/>
+<rect class="bg" x="698" y="346" width="84" height="28"/>
+<text x="740" y="366" text-anchor="middle" class="mono c-purple">&gt;&gt; 한 줄</text>
+<rect class="purple" x="640" y="416" width="200" height="100" rx="10"/>
+<text x="740" y="438" text-anchor="middle" class="tb c-purple">④ 감시 기록</text>
+<text x="740" y="459" text-anchor="middle" class="mono">/var/log/agent-app/</text>
+<text x="740" y="478" text-anchor="middle" class="mono">monitor.log</text>
+<text x="740" y="500" text-anchor="middle" class="ts">agent-core 만</text>
+<path class="ln ln-purple dash" d="M680,516 L680,536 L288,536 L288,568" fill="none" marker-end="url(#arrow-purple)"/>
+<rect class="bg" x="396" y="522" width="144" height="28"/>
+<text x="468" y="541" text-anchor="middle" class="ts c-purple">7일 지난 *.log</text>
+<text x="152" y="562" class="ts">보너스(선택)</text>
+<rect class="box dash" x="152" y="572" width="164" height="48" rx="10"/>
+<text x="234" y="592" text-anchor="middle" class="mono">archive_logs.sh</text>
+<text x="234" y="611" text-anchor="middle" class="mono c-muted">10 3 * * *</text>
+<line class="ln ln-purple" x1="316" y1="596" x2="372" y2="596" marker-end="url(#arrow-purple)"/>
+<rect class="purple dash" x="376" y="572" width="184" height="48" rx="10"/>
+<text x="468" y="592" text-anchor="middle" class="mono c-purple">/var/log/monitor/</text>
+<text x="468" y="611" text-anchor="middle" class="mono c-purple">agent-app/archive/</text>
+<line class="ln ln-blue dash" x1="740" y1="516" x2="740" y2="568" marker-end="url(#arrow-blue)"/>
+<text x="752" y="548" class="ts c-blue">읽기</text>
+<rect class="box dash" x="640" y="572" width="200" height="48" rx="10"/>
+<text x="740" y="592" text-anchor="middle" class="mono">report.sh</text>
+<text x="740" y="611" text-anchor="middle" class="ts">로그 통계 요약</text>
+<text x="24" y="662" class="ts">①~⑦ = src/01~07 스크립트 번호 · 점선 = 보너스(선택) · 빨강 = 차단 · 초록 = 허용 규칙 · 파랑 = 정상 흐름 · 보라 = 파일·폴더</text>
+</svg>

@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="440" viewBox="0 0 820 440" role="img" aria-labelledby="title desc">
+<title id="title">커널이 권한을 판정하는 순서 — monitor.sh 를 세 사람이 실행하면</title>
+<desc id="desc">monitor.sh 는 소유자 agent-dev, 그룹 agent-core, 권한 750(rwxr-x---)이다. 커널은 실행하려는 사람이 소유자인지, 그다음 그룹원인지 차례로 묻고 처음 맞는 칸 하나만 적용한다. 그래서 agent-dev 는 소유자 칸 rwx, agent-admin 은 그룹 칸 r-x 로 실행할 수 있고, agent-test 는 기타 칸 --- 이라 Permission denied 를 받는다.</desc>
+<style>
+  text{font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Noto Sans CJK KR",sans-serif;font-size:15px;fill:#1D1F23}
+  .bg{fill:#FFFFFF}
+  .ts{font-size:13px;fill:#5B6069}
+  .th{font-size:17px;font-weight:700}
+  .tb{font-weight:700}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,"Noto Sans Mono CJK KR",monospace;font-size:13.5px}
+  .box{fill:#F4F3EF;stroke:#9A9CA3;stroke-width:1.5}
+  .zone{fill:#FAF9F6;stroke:#C9C6BE;stroke-width:1.2;stroke-dasharray:5 4}
+  .blue{fill:#E7EFF9;stroke:#1F5FAD;stroke-width:1.6}
+  .green{fill:#E6F4EC;stroke:#1B7F4B;stroke-width:1.6}
+  .orange{fill:#FCEFE0;stroke:#B25E09;stroke-width:1.6}
+  .red{fill:#FCEBEA;stroke:#B42318;stroke-width:1.6}
+  .purple{fill:#F1EAFB;stroke:#6E3FB0;stroke-width:1.6}
+  .yellow{fill:#FFF3C4;stroke:#A07800;stroke-width:1.6}
+  .c-blue{fill:#1F5FAD}.c-green{fill:#1B7F4B}.c-orange{fill:#B25E09}.c-red{fill:#B42318}.c-purple{fill:#6E3FB0}.c-muted{fill:#5B6069}
+  .ln{stroke:#6B7078;stroke-width:1.6;fill:none}
+  .ln-blue{stroke:#1F5FAD}.ln-green{stroke:#1B7F4B}.ln-red{stroke:#B42318}.ln-orange{stroke:#B25E09}.ln-purple{stroke:#6E3FB0}
+  .dash{stroke-dasharray:6 5}
+  .ah{fill:#6B7078}.ah-blue{fill:#1F5FAD}.ah-green{fill:#1B7F4B}.ah-red{fill:#B42318}.ah-orange{fill:#B25E09}.ah-purple{fill:#6E3FB0}
+  @media (prefers-color-scheme:dark){
+    text{fill:#E8E6E1}
+    .bg{fill:#1A1C20}
+    .ts{fill:#A9A69F}
+    .box{fill:#24262B;stroke:#6B6E76}
+    .zone{fill:#1F2125;stroke:#43464D}
+    .blue{fill:#1B2940;stroke:#7FB0F0}
+    .green{fill:#16281E;stroke:#5FC98E}
+    .orange{fill:#2E2215;stroke:#E8A05A}
+    .red{fill:#301A18;stroke:#F08A80}
+    .purple{fill:#251C33;stroke:#C3A0F0}
+    .yellow{fill:#2E2812;stroke:#E3C45C}
+    .c-blue{fill:#9CC4F5}.c-green{fill:#7ED3A3}.c-orange{fill:#EDB27A}.c-red{fill:#F4A39B}.c-purple{fill:#D2B8F4}.c-muted{fill:#A9A69F}
+    .ln{stroke:#8D9098}
+    .ln-blue{stroke:#7FB0F0}.ln-green{stroke:#5FC98E}.ln-red{stroke:#F08A80}.ln-orange{stroke:#E8A05A}.ln-purple{stroke:#C3A0F0}
+    .ah{fill:#8D9098}.ah-blue{fill:#7FB0F0}.ah-green{fill:#5FC98E}.ah-red{fill:#F08A80}.ah-orange{fill:#E8A05A}.ah-purple{fill:#C3A0F0}
+  }
+</style>
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-blue" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-red" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-green" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-orange" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah-purple" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="820" height="440"/>
+<text x="24" y="28" class="ts">ls -l 로 본 monitor.sh</text>
+<text x="24" y="56" class="mono tb" style="font-size:18px" xml:space="preserve">-rwxr-x---  agent-dev  agent-core  monitor.sh</text>
+<rect class="box" x="24" y="72" width="156" height="52" rx="10"/>
+<text x="102" y="94" text-anchor="middle"><tspan class="tb">소유자 </tspan><tspan class="mono">rwx (7)</tspan></text>
+<text x="102" y="114" text-anchor="middle" class="ts">agent-dev</text>
+<rect class="box" x="196" y="72" width="156" height="52" rx="10"/>
+<text x="274" y="94" text-anchor="middle"><tspan class="tb">그룹 </tspan><tspan class="mono">r-x (5)</tspan></text>
+<text x="274" y="114" text-anchor="middle" class="ts">agent-core 그룹원</text>
+<rect class="box" x="368" y="72" width="156" height="52" rx="10"/>
+<text x="446" y="94" text-anchor="middle"><tspan class="tb">기타 </tspan><tspan class="mono">--- (0)</tspan></text>
+<text x="446" y="114" text-anchor="middle" class="ts">그 밖의 모두</text>
+<text x="552" y="94" class="ts">숫자: r=4 · w=2 · x=1</text>
+<text x="552" y="114" class="ts">7 = 4+2+1 · 5 = 4+1 · 0 = 없음</text>
+<rect class="box" x="24" y="148" width="164" height="56" rx="10"/>
+<text x="106" y="181" text-anchor="middle" class="tb">agent-dev</text>
+<line class="ln" x1="188" y1="176" x2="212" y2="176" marker-end="url(#arrow)"/>
+<rect class="box" x="216" y="148" width="120" height="56" rx="10"/>
+<text x="276" y="181" text-anchor="middle">소유자인가?</text>
+<line class="ln ln-green" x1="336" y1="176" x2="624" y2="176" marker-end="url(#arrow-green)"/>
+<text x="480" y="168" text-anchor="middle" class="ts c-green tb">예</text>
+<rect class="green" x="628" y="148" width="168" height="56" rx="10"/>
+<text x="712" y="172" text-anchor="middle" class="c-green"><tspan class="tb">소유자 칸 </tspan><tspan class="mono">rwx</tspan></text>
+<text x="712" y="192" text-anchor="middle" class="ts">읽기·수정·실행</text>
+<rect class="box" x="24" y="228" width="164" height="56" rx="10"/>
+<text x="106" y="252" text-anchor="middle" class="tb">agent-admin</text>
+<text x="106" y="272" text-anchor="middle" class="ts">(agent-core 멤버)</text>
+<line class="ln" x1="188" y1="256" x2="212" y2="256" marker-end="url(#arrow)"/>
+<rect class="box" x="216" y="228" width="120" height="56" rx="10"/>
+<text x="276" y="261" text-anchor="middle">소유자인가?</text>
+<line class="ln" x1="336" y1="256" x2="416" y2="256" marker-end="url(#arrow)"/>
+<text x="376" y="248" text-anchor="middle" class="ts">아니오</text>
+<rect class="box" x="420" y="228" width="140" height="56" rx="10"/>
+<text x="490" y="252" text-anchor="middle" class="mono">agent-core</text>
+<text x="490" y="272" text-anchor="middle">그룹원인가?</text>
+<line class="ln ln-green" x1="560" y1="256" x2="624" y2="256" marker-end="url(#arrow-green)"/>
+<text x="592" y="248" text-anchor="middle" class="ts c-green tb">예</text>
+<rect class="green" x="628" y="228" width="168" height="56" rx="10"/>
+<text x="712" y="252" text-anchor="middle" class="c-green"><tspan class="tb">그룹 칸 </tspan><tspan class="mono">r-x</tspan></text>
+<text x="712" y="272" text-anchor="middle" class="ts">읽기·실행 (수정 불가)</text>
+<rect class="box" x="24" y="308" width="164" height="56" rx="10"/>
+<text x="106" y="332" text-anchor="middle" class="tb">agent-test</text>
+<text x="106" y="352" text-anchor="middle" class="ts">(agent-common 만)</text>
+<line class="ln" x1="188" y1="336" x2="212" y2="336" marker-end="url(#arrow)"/>
+<rect class="box" x="216" y="308" width="120" height="56" rx="10"/>
+<text x="276" y="341" text-anchor="middle">소유자인가?</text>
+<line class="ln" x1="336" y1="336" x2="416" y2="336" marker-end="url(#arrow)"/>
+<text x="376" y="328" text-anchor="middle" class="ts">아니오</text>
+<rect class="box" x="420" y="308" width="140" height="56" rx="10"/>
+<text x="490" y="332" text-anchor="middle" class="mono">agent-core</text>
+<text x="490" y="352" text-anchor="middle">그룹원인가?</text>
+<line class="ln ln-red" x1="560" y1="336" x2="624" y2="336" marker-end="url(#arrow-red)"/>
+<text x="592" y="328" text-anchor="middle" class="ts c-red">아니오</text>
+<rect class="red" x="628" y="308" width="168" height="56" rx="10"/>
+<text x="712" y="332" text-anchor="middle" class="c-red"><tspan class="tb">기타 칸 </tspan><tspan class="mono">---</tspan></text>
+<text x="712" y="352" text-anchor="middle" class="mono c-red">Permission denied</text>
+<text x="24" y="398" class="ts tb">처음 맞는 칸 하나만 본다: 소유자 → 그룹 → 기타 (agent-dev 도 agent-core 그룹원이지만 소유자 칸에서 끝난다)</text>
+<text x="24" y="420" class="ts">스크립트는 r 과 x 둘 다 필요 — x 만 있으면 셸이 내용을 읽지 못해 Permission denied</text>
+</svg>
